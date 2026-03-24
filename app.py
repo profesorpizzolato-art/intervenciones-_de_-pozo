@@ -114,9 +114,13 @@ def vista_dashboard():
     
     with cd: # O la columna que tengas libre
         if st.button("🔧 Herramientas / Torque"): st.session_state['pantalla'] = 'herramientas'; st.rerun()        
-    with col_viz:
-        st.write("**Esquema del Pozo**") graf_data = pd.DataFrame({'Tramo': ['Pozo'],'Libre (m)': [prof_m],'Atrapado (m)': [max(0, total_m - prof_m)]}).set_index('Tramo')
-        st.bar_chart(graf_data, color=["#2ecc71", "#e74c3c"], width="stretch")
+           st.write("**Esquema del Pozo**") 
+           graf_data = pd.DataFrame({
+           'Tramo': ['Pozo'],
+           'Libre (m)': [prof_m],
+           'Atrapado (m)': [max(0, total_m - prof_m)]
+           }).set_index('Tramo')
+           st.bar_chart(graf_data, color=["#2ecc71", "#e74c3c"], width="stretch")
     with col_graph:
         y = np.linspace(25000, tension, 15) + np.random.normal(0, 1000, 15)
         # Actualizado para evitar el warning
