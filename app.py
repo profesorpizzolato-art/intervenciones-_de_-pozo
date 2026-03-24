@@ -270,31 +270,78 @@ def vista_simulador_operativo():
             st.rerun()
         return # Cortamos la ejecución aquí si no hay pozo
     
-    # 2. Verificamos si hay una emergencia activa
+   # 2. LÓGICA DE EMERGENCIA PASO A PASO
     if st.session_state.get('evento_activo') == "KICK":
-        st.error("🚨 ¡ALERTA DE SURGENCIA! Presión en el anular aumentando.")
+        import time
         
-        col_ev1, col_ev2 = st.columns(2)
-        with col_ev1:
-            herram = st.selectbox("Herramienta a usar:", 
-                ["Llave Stillson 24\"", "Llave de Golpe", "Llave Francesa"], 
-                key="sel_herram_emergencia")
-        with col_ev2:
-            torque_int = st.number_input("Golpes aplicados:", 0, 10, 0, key="num_torque_emergencia")
+        # --- INICIALIZACIÓN DEL PASO ---
+        if 'paso_kick' not in st.session_state:
+            st.session_state['paso_kick'] = 1
+            st.session_state['inicio_kick'] = time.time()
+        
+        tiempo_transcurrido = time.time() - st.session_state['inicio_kick']
+        tiempo_restante = max(0, 45 - int(tiempo_transcurrido)) # Damos 45s para el proceso completo
 
-        if st.button("Confirmar Cierre de Emergencia", key="btn_confirmar_kick"):
-            if herram == "Llave de Golpe" and torque_int >= 5:
-                st.success("✅ ¡POZO BAJO CONTROL!")
-                st.session_state['evento_activo'] = None
-                st.balloons()
+        st.error(f"🚨 ¡KICK DETECTADO! Tiempo crítico: {tiempo_restante}s")
+        st.progress(tiempo_restante / 45)
+
+        # --- FLUJO DE ACCIONES ---
+        paso = st.session_state['paso_kick']
+
+        if paso == 1:
+            st.subheader("Paso 1: Detener maniobra y asegurar")
+            st.info("El vástago está subiendo. ¿Qué acción realizas primero?")
+            if st.button("Posicionar herramienta y asentar en cuñas", key="step1_ok"):
+                st.session_state['paso_kick'] = 2
                 st.rerun()
-            else:
-                st.error("❌ FALLA CRÍTICA. ¡EVACUAR EQUIPO!")
-                # Penalización en el ranking
-                st.session_state['ranking'].loc[st.session_state['ranking']['Operador'] == st.session_state['user']['nombre'], 'Puntaje'] -= 500
-        
-        return # Evitamos que se dibuje el simulador debajo de la emergencia
+            if st.button("Salir corriendo de la locación", key="step1_fail"):
+                st.error("❌ Abandono de puesto sin asegurar. Penalización máxima.")
+                st.session_state['ranking'].loc[st.session_state['ranking']['Operador'] == st.session_state['user']['nombre'], 'Puntaje'] -= 1000
 
+        elif paso == 2:
+            st.subheader("Paso 2: Elección de Herramienta de Cierre")
+            st.info("Necesitas cerrar la BOP manual. ¿Qué herramienta llevas al cabezal?")
+            h_emerg = st.radio("Herramientas disponibles:", ["Llave Stillson", "Llave de Golpe (Slogging)", "Llave Francesa"], key="radio_h")
+            if st.button("Confirmar Herramienta"):
+                if h_emerg == "Llave de Golpe (Slogging)":
+                    st.success("✅ Correcto. Corriendo al cabezal...")
+                    st.session_state['paso_kick'] = 3
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Esa herramienta no dará el torque necesario. Perdiste tiempo.")
+
+        elif paso == 3:
+            st.subheader("Paso 3: Torque de Sellado")
+            st.info("Aplica los golpes necesarios para sellar el empaque (Stripper/BOP).")
+            golpes = st.number_input("Cantidad de golpes con maza:", 0, 10, 0)
+            if st.button("Finalizar Cierre"):
+                if golpes >= 6:
+                    st.session_state['paso_kick'] = 4 # Éxito
+                    st.rerun()
+                else:
+                    st.error("❌ Presión insuficiente. El pozo sigue fluyendo.")
+
+        elif paso == 4:
+            st.balloons()
+            st.success(f"🎊 ¡POZO CONTROLADO! Tiempo total: {int(time.time() - st.session_state['inicio_kick'])}s")
+            if st.button("Volver al Simulador"):
+                st.session_state['evento_activo'] = None
+                del st.session_state['paso_kick']
+                del st.session_state['inicio_kick']
+                st.rerun()
+
+        # --- CONTROL DE DERRAME ---
+        if tiempo_restante <= 0:
+            st.error("💥 DESBORDE TOTAL. El pozo ha superado la capacidad de cierre.")
+            if st.button("Reiniciar Intento"):
+                st.session_state['evento_activo'] = None
+                del st.session_state['paso_kick']
+                del st.session_state['inicio_kick']
+                st.rerun()
+        
+        time.sleep(1)
+        st.rerun()
+        return
     # 3. INTERFAZ NORMAL (Solo se llega aquí si hay pozo y NO hay emergencia)
     pozo = st.session_state['pozo_seleccionado']
     st.title(f"🏗️ Operando: {pozo['Pozo']}")
