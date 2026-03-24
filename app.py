@@ -294,3 +294,92 @@ def main():
 
 if __name__ == "__main__":
     main()
+import streamlit as st
+import pandas as pd
+import numpy as np
+
+# Configuración profesional
+st.set_page_config(page_title="Simulador Técnico - IPCL MENFA", layout="wide")
+
+def main():
+    st.title("🏗️ Simulador Avanzado de Pulling y Pesca - MENFA")
+    st.markdown("---")
+
+    # --- DATOS DE REFERENCIA (API 11B) ---
+    datos_varillas = {
+        "Grado D (Acero Carbono)": {"peso_lb_ft": 1.64, "resistencia_psi": 115000},
+        "Grado K (Corrosión Moderada)": {"peso_lb_ft": 1.63, "resistencia_psi": 85000},
+        "Grado KD (Aleación Especial)": {"peso_lb_ft": 1.65, "resistencia_psi": 115000},
+        "Varilla de Fibra de Vidrio": {"peso_lb_ft": 0.65, "resistencia_psi": 100000}
+    }
+
+    # --- SIDEBAR: CONFIGURACIÓN ---
+    st.sidebar.header("⚙️ Configuración del Pozo")
+    tipo_varilla = st.sidebar.selectbox("Tipo de Varilla (API 11B):", list(datos_varillas.keys()))
+    profundidad_m = st.sidebar.number_input("Profundidad de la Bomba (m)", value=1200)
+    
+    # Cálculo automático de peso teórico
+    peso_u = datos_varillas[tipo_varilla]["peso_lb_ft"]
+    prof_ft = profundidad_m * 3.2808
+    peso_teorico_total = peso_u * prof_ft
+
+    # --- PESTAÑAS ---
+    tab1, tab2, tab3 = st.tabs(["📊 Monitor de Cargas", "🧮 Ingeniería de Ahogo", "📋 Programas API"])
+
+    # --- TAB 1: MONITOR DE CARGAS Y GRÁFICOS ---
+    with tab1:
+        st.subheader("Visualización del Martin Decker")
+        c1, c2 = st.columns([1, 2])
+        
+        with c1:
+            st.metric("Peso Teórico en Aire", f"{peso_teorico_total:.0f} lbs")
+            peso_real = st.slider("Lectura del Indicador (lbs)", 0, int(peso_teorico_total * 1.2), int(peso_teorico_total * 0.5))
+            
+            diferencial = peso_teorico_total - peso_real
+            if diferencial > (peso_teorico_total * 0.15):
+                st.error(f"⚠️ PESCA DETECTADA: Faltan {diferencial:.0f} lbs")
+            else:
+                st.success("✅ Columna Íntegra")
+
+        with c2:
+            # Gráfico de comportamiento de carga
+            st.write("**Gráfico de Tensión en la Maniobra**")
+            chart_data = pd.DataFrame({
+                "Tensión": [0, peso_real * 0.5, peso_real, peso_real * 1.1],
+                "Tiempo (min)": [0, 5, 10, 15]
+            })
+            st.line_chart(chart_data, x="Tiempo (min)", y="Tensión")
+
+    # --- TAB 2: CÁLCULOS DE AHOGO ---
+    with tab2:
+        st.subheader("Cálculos de Control de Pozo (API RP 59)")
+        col_a, col_b = st.columns(2)
+        
+        with col_a:
+            presion_res = st.number_input("Presión de Reservorio (PSI)", value=1500)
+            overbalance = st.number_input("Margen de Seguridad (PSI)", value=200)
+            densidad_req = (presion_res + overbalance) / (prof_ft * 0.052)
+            st.metric("Densidad de Ahogo", f"{densidad_req:.2f} ppg")
+            
+        with col_b:
+            st.info("""
+            **Resistencia de Materiales:**
+            - Límite Elástico: {0} PSI
+            - No exceder el 80% de la carga de fluencia durante la pesca.
+            """.format(datos_varillas[tipo_varilla]["resistencia_psi"]))
+
+    # --- TAB 3: PROGRAMAS API ---
+    with tab3:
+        st.subheader("Checklist de Procedimiento")
+        op = st.radio("Maniobra:", ["1er Caso: Vástago", "2do Caso: Varillas"])
+        
+        if op == "1er Caso: Vástago":
+            pasos = ["Descomprimir columnas", "Retirar cabeza de mula", "Capturar vástago", "Montar BOP"]
+        else:
+            pasos = ["Ahogar pozo", "Retirar vástago", "Sacar en tiros dobles", "Bajar pescador"]
+            
+        for p in pasos:
+            st.checkbox(p)
+
+if __name__ == "__main__":
+    main()
