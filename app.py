@@ -153,73 +153,59 @@ def vista_hse_seguridad():
 
 def vista_simulador_operativo():
     header_app()
-    if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
+    if st.button("⬅️ Volver", key="btn_volver_sim"): 
+        st.session_state['pantalla'] = 'dashboard'
+        st.rerun()
     
-    if not st.session_state['pozo_seleccionado'] or not st.session_state['hse_ok']:
-        st.warning("⚠️ Verifique: 1. Seleccionar Pozo | 2. Completar ATS en Módulo HSE."); return
+    if not st.session_state.get('pozo_seleccionado') or not st.session_state.get('hse_ok'):
+        st.warning("⚠️ Verifique: 1. Seleccionar Pozo en Legajos | 2. Completar ATS en Módulo HSE.")
+        return
 
     datos = st.session_state['pozo_seleccionado']
     st.markdown(f'<div class="modulo-header"><h2>Pesca en Pozo: {datos["Pozo"]}</h2></div>', unsafe_allow_html=True)
 
-    col_ctrl, col_graph = st.columns([1, 2, 3])
-    with col_ctrl:
-        if st.button("⏯️ Avanzar Maniobra (Evento)"): generar_contingencia()
-        if st.session_state['evento_activo']:
+    # CORRECCIÓN LÍNEA 214: Definimos 3 columnas para que 'with col3' funcione
+    col1, col2, col3 = st.columns([2, 3, 3]) 
+    
+    with col1:
+        st.subheader("Controles")
+        if st.button("⏯️ Generar Evento"): 
+            generar_contingencia()
+        
+        if st.session_state.get('evento_activo'):
             ev = st.session_state['evento_activo']
             st.info(f"{ev['icono']} {ev['msg']}")
         
         limites = {"Grado D": 115000, "Grado K": 85000, "Grado KD": 115000}
-        tension = st.slider("Tensión (lbs)", 0, 130000, 40000)
-        if tension > limites[datos['Grado Varilla']]: st.error("🚨 ROTURA DE SARTA")
+        limite_actual = limites.get(datos['Grado Varilla'], 100000)
+        tension = st.slider("Tensión Aplicada (lbs)", 0, 150000, 40000)
+        
+        if tension > limite_actual: 
+            st.error(f"🚨 SOBRETENSIÓN: Límite de {datos['Grado Varilla']} excedido")
 
-    with col_graph:
-        y = np.linspace(25000, tension, 15) + np.random.normal(0, 1000, 15)
+    with col2:
+        st.subheader("Indicador de Carga")
+        # Simulación de tirones
+        y = np.linspace(25000, tension, 15) + np.random.normal(0, 1500, 15)
         st.line_chart(y)
 
-    if st.button("📝 Finalizar y Reportar"):
-        puntos = 3000 if tension < limites[datos['Grado Varilla']] else 500
-        nuevo_rank = {"Operador": st.session_state['user']['nombre'], "Puntaje": puntos, "Estado": "Finalizado", "Pozo": datos['Pozo']}
-        st.session_state['ranking'] = pd.concat([st.session_state['ranking'], pd.DataFrame([nuevo_rank])], ignore_index=True)
-        st.session_state['pantalla'] = 'ranking'; st.rerun()
+    with col3: # Ahora col3 existe correctamente
+        st.subheader("Estado de Sarta")
+        st.write(f"**Material:** {datos['Grado Varilla']}")
+        st.write(f"**Profundidad:** {datos['Profundidad (m)']} m")
+        
+        if st.button("📝 Finalizar y Reportar"):
+            puntos = 3000 if tension <= limite_actual else 500
+            nuevo_registro = pd.DataFrame([{
+                "Operador": st.session_state['user']['nombre'], 
+                "Puntaje": puntos, 
+                "Estado": "Finalizado", 
+                "Pozo": datos['Pozo']
+            }])
+            # Unión de datos corregida
+            st.session_state['ranking'] = pd.concat([st.session_state['ranking'], nuevo_registro], ignore_index=True)
+            st.success("Operación reportada al Ranking.")
 
-def vista_punto_libre():
-    header_app()
-    if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
-    st.markdown('<div class="modulo-header"><h2>🧮 Cálculo de Punto Libre</h2></div>', unsafe_allow_html=True)
-    p1 = st.number_input("Tensión 1 (lbs)", 20000)
-    p2 = st.number_input("Tensión 2 (lbs)", 40000)
-    est = st.number_input("Estiramiento (pulg)", 10.0)
-    if p2 > p1:
-        res = (est * 0.88 * 1000000) / (p2 - p1)
-        st.metric("Profundidad de Atrapamiento", f"{res:.0f} metros")
-
-def vista_ranking():
-    header_app()
-    if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
-    st.markdown('<div class="modulo-header"><h2>🏆 Ranking de Operadores MENFA</h2></div>', unsafe_allow_html=True)
-    st.table(st.session_state['ranking'].sort_values("Puntaje", ascending=False))
-
-# --- RUTEADOR ---
-if not st.session_state['auth']:
-    vista_registro()
-else:
-    p = st.session_state['pantalla']
-    if p == 'dashboard': vista_dashboard()
-    elif p == 'legajo': vista_legajo()
-    elif p == 'simulador': vista_simulador_operativo()
-    elif p == 'punto_libre': vista_punto_libre()
-    elif p == 'ranking': vista_ranking()
-    elif p == 'hse': vista_hse_seguridad()
-# Dentro de vista_dashboard()
-with col3: # Puedes crear una cuarta columna o ponerlo debajo
-    st.markdown('<div class="card-tecnica"><h3>🏆 Cuadro de Honor</h3><p>Ranking de eficiencia y seguridad operativa en Mendoza.</p></div>', unsafe_allow_html=True)
-    if st.button("Ver Ranking"): 
-        st.session_state['pantalla'] = 'ranking'
-        st.rerun()
-# --- 4. LÓGICA DE EVENTOS ALEATORIOS (CONTINGENCIAS) ---
-# Inicializar estado del evento si no existe
-if 'evento_activo' not in st.session_state: 
-    st.session_state['evento_activo'] = None
 
 def generar_contingencia():
     """Simula imprevistos operativos aleatorios durante la maniobra."""
