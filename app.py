@@ -2,10 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import random
-import streamlit as st
-import pandas as pd
-import numpy as np
-import random
+import io
 
 # 1. CONFIGURACIÓN E IDENTIDAD VISUAL - IPCL MENFA MENDOZA
 st.set_page_config(page_title="IPCL MENFA - Gestión Integral de Operaciones", layout="wide")
@@ -90,6 +87,28 @@ def vista_registro():
                     st.session_state['user'] = {"nombre": n, "dni": d, "rol": r}
                     st.rerun()
 
+def generar_excel_reporte(df):
+    output = io.BytesIO()
+    # Creamos el escritor de Excel usando xlsxwriter
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Reporte_MENFA')
+        
+        # Formato visual para el Excel
+        workbook  = writer.book
+        worksheet = writer.sheets['Reporte_MENFA']
+        
+        # Formato de encabezado (Azul MENFA)
+        header_format = workbook.add_format({
+            'bold': True, 'text_wrap': True,
+            'valign': 'vcenter', 'fg_color': '#00457C',
+            'font_color': 'white', 'border': 1
+        })
+        
+        for col_num, value in enumerate(df.columns.values):
+            worksheet.write(0, col_num, value, header_format)
+            worksheet.set_column(col_num, col_num, 20) # Ancho de columna
+            
+    return output.getvalue()
 def vista_dashboard():
     header_app()
     st.title("Panel de Control de Intervenciones - IPCL MENFA")
@@ -924,7 +943,24 @@ def vista_manual():
         * **Costo de Equipo:** Cada hora de Pulling en Mendoza promedia los 450-600 USD.
         * **Impacto de Rotura:** Una rotura por sobre-tensión implica pesca con 'Overshot', aumentando el OPEX en un 40%.
         """)
-
+# --- SECCIÓN DE DESCARGA (Solo visible si hay datos) ---
+    if not df_rank.empty:
+        st.write("---")
+        st.subheader("📥 Gestión Administrativa")
+        
+        # Preparamos los datos para el reporte
+        df_reporte = df_rank.copy()
+        df_reporte['Certificado'] = df_reporte['Puntaje'].apply(lambda x: 'SÍ' if x >= 4000 else 'NO')
+        
+        excel_data = generar_excel_reporte(df_reporte)
+        
+        st.download_button(
+            label="📊 Descargar Reporte Final (Excel)",
+            data=excel_data,
+            file_name=f"Reporte_Alumnos_MENFA_{pd.Timestamp.now().strftime('%d-%m-%Y')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        st.caption("El reporte incluye nombres, puntajes y estado de certificación para el legajo del instituto.")
     with tab3:
         st.subheader("Checklist de Seguridad Crítica")
         st.warning("1. Verificar estanqueidad de la BOP.\n2. Asegurar zona de exclusión debajo del bloque viajero.\n3. Controlar vientos de la torre (API 4F).")
