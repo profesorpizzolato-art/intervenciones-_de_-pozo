@@ -633,67 +633,75 @@ def vista_herramientas():
     if st.button("⬅️ Volver al Panel"): 
         st.session_state['pantalla'] = 'dashboard'; st.rerun()
     
-    st.markdown('<div class="modulo-header"><h2>🛠️ Herramientas de Torque y Calibración</h2></div>', unsafe_allow_html=True)
+    st.markdown('<div class="modulo-header"><h2>🛠️ Catálogo Técnico de Herramientas y Torque</h2></div>', unsafe_allow_html=True)
     
-    # --- PANELES DE INFORMACIÓN ---
-    tab1, tab2, tab3 = st.tabs(["🔧 Equipos", "📊 Normas y Torques", "📏 Calibración"])
+    # --- MENÚ DE NAVEGACIÓN INTERNA ---
+    tab_m, tab_h, tab_p, tab_c = st.tabs([
+        "🔧 Llaves y Torque", 
+        "🛠️ Herramientas de Mano", 
+        "🎣 Herramientas de Pesca", 
+        "📏 Calibración API"
+    ])
     
-    with tab1:
-        c1, c2 = st.columns(2)
+    with tab_m:
+        st.subheader("Control de Torque (API RP 7G-2)")
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            data_t = {
+                "Elemento": ["Varilla 5/8\"", "Varilla 3/4\"", "Varilla 7/8\"", "Varilla 1\"", "Tubing 2 3/8\" EUE", "Tubing 2 7/8\" EUE"],
+                "Torque Mín (ft-lbs)": [200, 350, 500, 800, 1200, 1700],
+                "Torque Máx (ft-lbs)": [350, 600, 900, 1400, 1800, 2500]
+            }
+            st.table(pd.DataFrame(data_t))
+        with col2:
+            st.info("💡 **Dato MENFA:** En pozos con alta salinidad en Mendoza, se recomienda usar grasa con 50% de zinc para asegurar el sellado.")
+            # Gráfico de Torque vs Tensión
+            t_val = np.linspace(0, 1500, 15)
+            s_val = t_val * 1.8
+            df_chart = pd.DataFrame({"Torque": t_val, "Tensión Pin": s_val}).set_index("Torque")
+            st.line_chart(df_chart, width="stretch")
+
+    with tab_h:
+        st.subheader("Herramental de Boca de Pozo")
+        c1, c2, c3 = st.columns(3)
         with c1:
-            st.subheader("Llaves Manuales (Tongs)")
-            st.write("""
-            - **Uso:** Enrosque inicial y desenrosque de seguridad.
-            - **Seguridad:** Requieren línea de tiro (snub line) y poste de seguridad.
-            - **Norma:** Inspección visual diaria de mordazas (dies).
-            """)
+            st.markdown("**Llaves de Golpe (Slogging Spanners)**")
+            st.caption("Uso: Ajuste de bridas de BOP y bridas de producción.")
         with c2:
-            st.subheader("Llaves Hidráulicas (Power Tongs)")
-            st.write("""
-            - **Uso:** Torque final controlado.
-            - **Ventaja:** Velocidad constante y torque uniforme.
-            - **Mantenimiento:** Verificar presión de seteo en la unidad de potencia.
-            """)
+            st.markdown("**Llaves de Caño (Stillson/Rigid)**")
+            st.caption("Uso: Conexiones auxiliares. Prohibido su uso en cuerpo de varilla.")
+        with c3:
+            st.markdown("**Elevadores de Varilla**")
+            st.caption("Verificar: Seguro de traba y desgaste de asiento.")
 
-    with tab2:
-        st.subheader("Torques de Enrosque Sugeridos (API RP 7G-2)")
-        # Datos técnicos para la Cuenca Cuyana
-        data_t = {
-            "Conexión": ["2 3/8\" EUE", "2 7/8\" EUE", "3 1/2\" EUE", "Varilla 3/4\"", "Varilla 7/8\""],
-            "Torque Mín (ft-lbs)": [1200, 1700, 2200, 350, 500],
-            "Torque Óptimo (ft-lbs)": [1500, 2100, 2800, 480, 680],
-            "Torque Máx (ft-lbs)": [1800, 2500, 3400, 600, 860]
-        }
-        df_t = pd.DataFrame(data_t)
-        st.table(df_t)
-        
-        # Gráfica de Tensión vs Torque
-        st.write("**Gráfica de Esfuerzo en la Conexión**")
-        t_range = np.linspace(0, 1000, 20)
-        stress = t_range * 1.5 # Simulación de tensión
-        chart_t = pd.DataFrame({"Torque (ft-lbs)": t_range, "Tensión Pin (psi)": stress}).set_index("Torque (ft-lbs)")
-        st.line_chart(chart_t, width="stretch")
-        st.caption("Zona Verde: Elástica | Zona Roja: Deformación Plástica (Over-torque)")
+    with tab_p:
+        st.subheader("Herramientas de Pesca (Fishing Tools)")
+        st.write("Selección según el tipo de 'pescado' en la Cuenca:")
+        col_p1, col_p2 = st.columns(2)
+        with col_p1:
+            st.write("🎯 **Para Agarre Externo:**")
+            st.markdown("- **Overshot:** El más versátil (Grapple tipo cesta o espiral).")
+            st.markdown("- **Die Nipple:** Para agarrar por fuera mediante roscado.")
+        with col_p2:
+            st.write("🎯 **Para Agarre Interno:**")
+            st.markdown("- **Taper Tap:** Rosca interna en el pescado.")
+            st.markdown("- **Itco-Type Release Spear:** Agarre mecánico interno liberable.")
+        st.warning("⚠️ Antes de bajar: Medir OD del Overhot y ID del Casing (debe haber margen de circulación).")
 
-    with tab3:
-        st.subheader("Uso de Chapas Calibre (Gauges)")
-        st.warning("⚠️ El 'No-Go Gauge' debe ser utilizado antes de cada bajada para asegurar que el OD no esté excedido por incrustaciones o deformación.")
+    with tab_c:
+        st.subheader("Simulador de Chapas Calibre (Gauges)")
+        st.write("Simulación de paso de herramienta:")
         
-        col_c1, col_c2 = st.columns(2)
-        with col_c1:
-            medida = st.selectbox("Seleccionar Herramienta a Calibrar:", ["Varilla 3/4\"", "Varilla 7/8\"", "Casing 5 1/2\"", "Tubing 2 7/8\""])
-            lectura = st.number_input("Lectura del Calibre (pulgadas):", format="%.3f", value=0.875)
+        c_sel = st.selectbox("Herramienta a Calibrar:", ["Bomba de Profundidad", "Pescante", "Centralizador", "Tapa de Pesca"])
+        val_cal = st.number_input("Medida del Calibre No-Go (in):", value=2.500, format="%.3f")
         
-        with col_c2:
-            # Lógica simple de verificación
-            limites = {"Varilla 3/4\"": 0.750, "Varilla 7/8\"": 0.875, "Casing 5 1/2\"": 5.500, "Tubing 2 7/8\"": 2.875}
-            diff = abs(lectura - limites[medida])
-            
-            if diff < 0.015:
-                st.success("✅ HERRAMIENTA DENTRO DE TOLERANCIA")
-                st.balloons()
-            else:
-                st.error("🚨 FUERA DE CALIBRE: No bajar al pozo.")           
+        # Lógica de calibración
+        metas = {"Bomba de Profundidad": 2.250, "Pescante": 1.750, "Centralizador": 2.875, "Tapa de Pesca": 2.000}
+        
+        if val_cal <= metas[c_sel]:
+            st.success(f"✅ ¡APROBADO! La herramienta pasa por la chapa de {metas[c_sel]}\"")
+        else:
+            st.error(f"🚨 RECHAZADO: El OD ({val_cal}\") es superior al máximo permitido ({metas[c_sel]}\").")          
 def monitor_barreras_seguridad():
     st.subheader("🛡️ Monitor de Barreras de Seguridad")
     
