@@ -283,42 +283,49 @@ def vista_punto_libre():
 
 def vista_punto_libre():
     header_app()
-    if st.button("⬅️ Volver al Panel"): 
-        st.session_state['pantalla'] = 'dashboard'; st.rerun()
+    c1, c2 = st.columns([4, 1])
+    with c1:
+        if st.button("⬅️ Volver al Panel"): 
+            st.session_state['pantalla'] = 'dashboard'; st.rerun()
+    with c2:
+        if st.button("🔬 Ver Fórmula"): 
+            st.session_state['pantalla'] = 'formulas'; st.rerun()
         
     st.markdown('<div class="modulo-header"><h2>🧮 Ingeniería: Cálculo de Punto Libre</h2></div>', unsafe_allow_html=True)
     
-    col1, col2, col_graf = st.columns([1.5, 1.5, 1])
+    col_in, col_out, col_viz = st.columns([1.5, 1.5, 1])
     
-    with col1:
-        st.subheader("📥 Inputs")
+    with col_in:
+        st.subheader("📥 Parámetros de Campo")
         tabla_constantes = {"5/8\"": 0.522, "3/4\"": 0.751, "7/8\"": 1.022, "1\"": 1.336}
-        sel = st.selectbox("Varilla:", list(tabla_constantes.keys()))
-        p1 = st.number_input("P1 (lbs)", 15000)
-        p2 = st.number_input("P2 (lbs)", 30000)
-        est = st.number_input("Estiramiento (pulg)", 10.0)
+        sel = st.selectbox("Diámetro de Varilla (API):", list(tabla_constantes.keys()))
+        p1 = st.number_input("Tensión Inicial P1 (lbs)", 15000, help="Peso neutral de la sarta")
+        p2 = st.number_input("Tensión Final P2 (lbs)", 35000, help="Tracción aplicada para estiramiento")
+        est = st.number_input("Estiramiento E (pulgadas)", 12.0)
 
-    with col2:
-        st.subheader("📊 Resultado")
+    with col_out:
+        st.subheader("📊 Resultado Técnico")
         dp = p2 - p1
         if dp > 0:
+            # Cálculo de profundidad en metros
             prof_m = ((est * tabla_constantes[sel] * 1000000) / dp) * 0.3048
-            st.metric("Atrapamiento a:", f"{prof_m:.2f} m")
+            st.metric("Punto de Atrapamiento", f"{prof_m:.2f} m")
             
             if st.session_state['pozo_seleccionado']:
                 total_m = st.session_state['pozo_seleccionado']['Profundidad (m)']
-                # Dibujamos el gráfico de barras lateral
-                with col_graf:
-                    st.write("**Esquema de Pozo**")
-                    # Crear un dataframe para simular el pozo
-                    data_graf = pd.DataFrame({
-                        'Zona': ['Libre', 'Atrapado'],
-                        'Metros': [prof_m, max(0, total_m - prof_m)]
+                st.write(f"Prof. Total Pozo: {total_m} m")
+                
+                with col_viz:
+                    st.write("**Visualización**")
+                    # Gráfico de barras para representar el pozo
+                    graf_data = pd.DataFrame({
+                        'Tramo': ['Libre (m)', 'Atrapado (m)'],
+                        'Longitud': [prof_m, max(0, total_m - prof_m)]
                     })
-                    st.bar_chart(data_graf, y="Metros", color=["#2ecc71", "#e74c3c"])
-                    st.caption("Verde: Libre | Rojo: Agarre")
+                    st.bar_chart(graf_data, x="Tramo", y="Longitud", color=["#2ecc71", "#e74c3c"])
         else:
-            st.error("P2 debe ser mayor a P1")
+            st.error("Error: P2 debe ser mayor que P1 para generar estiramiento.")
+            
 def vista_ingenieria_punto_libre():
     """Módulo para calcular la profundidad del atrapamiento (Stretch Method)."""
     header_app() # Tu función de encabezado institucional
@@ -638,6 +645,80 @@ def vista_ranking():
     if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
     st.markdown('<div class="modulo-header"><h2>🏆 Ranking de Eficiencia MENFA</h2></div>', unsafe_allow_html=True)
     st.table(st.session_state['ranking'])
+def vista_diploma():
+    header_app()
+    if st.button("⬅️ Volver"): 
+        st.session_state['pantalla'] = 'dashboard'; st.rerun()
+    
+    # Buscamos el mejor puntaje del usuario actual en el ranking
+    user_name = st.session_state['user']['nombre']
+    df_rank = st.session_state['ranking']
+    score_user = df_rank[df_rank['Operador'] == user_name]['Puntaje'].max() if user_name in df_rank['Operador'].values else 0
+
+    if score_user >= 4000:
+        st.balloons()
+        st.markdown(f"""
+        <div style="border: 10px solid #00457C; padding: 50px; text-align: center; background-color: white;">
+            <h1 style="color: #00457C;">CERTIFICADO DE EXCELENCIA</h1>
+            <p style="font-size: 20px;">IPCL MENFA - Mendoza, Argentina</p>
+            <hr>
+            <p style="font-size: 25px;">Se certifica que:</p>
+            <h2 style="text-decoration: underline;">{user_name.upper()}</h2>
+            <p style="font-size: 20px;">Ha completado exitosamente el entrenamiento de <br><b>SIMULACIÓN DE PESCA Y WELL CONTROL</b></p>
+            <p style="font-size: 22px; color: #2ecc71;"><b>Puntaje Obtenido: {score_user} pts</b></p>
+            <br><br>
+            <div style="display: flex; justify-content: space-around;">
+                <div>_______________________<br>Instructor Fabricio</div>
+                <div>_______________________<br>Sello IPCL MENFA</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.button("🖨️ Imprimir Pantalla (Ctrl+P)")
+    else:
+        st.error(f"Lo siento, {user_name}. Necesitas al menos 4000 puntos para obtener el diploma. Tu puntaje actual es {score_user}.") 
+def vista_formulas():
+    header_app()
+    if st.button("⬅️ Volver al Panel"): 
+        st.session_state['pantalla'] = 'dashboard'; st.rerun()
+    
+    st.markdown('<div class="modulo-header"><h2>🧮 Prontuario de Fórmulas Técnicas - IPCL MENFA</h2></div>', unsafe_allow_html=True)
+    
+    st.info("💡 Estas fórmulas rigen el comportamiento del simulador y los cálculos de intervención en la Cuenca Cuyana.")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("1. Control de Pozos (Well Control)")
+        st.write("Para calcular la densidad de ahogo (Kill Mud Weight):")
+        st.latex(r"D_{ahogo} [ppg] = \frac{P_{res} [psi]}{0.052 \times TVD [ft]}")
+        
+        st.write("Presión Hidrostática ($P_h$):")
+        st.latex(r"P_h [psi] = 0.052 \times \rho [ppg] \times TVD [ft]")
+        
+        st.subheader("2. Mecánica de Varillas (API 11B)")
+        st.write("Carga Máxima de Operación Sugerida ($T_{max}$):")
+        st.latex(r"T_{max} [lbs] = S_f \times 0.90 \times \text{Límite de Fluencia}")
+        st.caption("Donde $S_f$ es el factor de servicio (0.5 a 1.0 según corrosión).")
+
+    with col2:
+        st.subheader("3. Estiramiento y Punto Libre")
+        st.write("Profundidad de Atrapamiento ($L$):")
+        st.latex(r"L [m] = \left( \frac{E [in] \times Et \times 10^6}{\Delta P [lbs]} \right) \times 0.3048")
+        
+        st.write("Constante Elástica ($Et$) de la varilla:")
+        st.latex(r"Et = \frac{1}{A [in^2] \times E_{acero}}")
+        st.caption("Siendo $E_{acero} \approx 30 \times 10^6 psi$.")
+
+    st.divider()
+    
+    st.subheader("4. Capacidades Volumétricas")
+    cv_col1, cv_col2 = st.columns(2)
+    with cv_col1:
+        st.write("Volumen en Tubing ($V_t$):")
+        st.latex(r"V_t [bbl] = ID^2 [in] \times 0.0009714 \times L [ft]")
+    with cv_col2:
+        st.write("Volumen Anular ($V_a$):")
+        st.latex(r"V_a [bbl] = (ID_{csg}^2 - OD_{tbg}^2) \times 0.0009714 \times L [ft]")        
 def vista_manual():
     header_app()
     if st.button("⬅️ Volver al Panel"): 
@@ -687,3 +768,9 @@ else:
         vista_ranking()
     elif pantalla == "manual":
          vista_manual()
+    elif pantalla == "diploma"
+         vista_diploma()
+    elif pantalla == "formulas"
+         vista_formulas()
+
+    
