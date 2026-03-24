@@ -630,49 +630,70 @@ def vista_pesca_con_contingencias():
         for i, p in enumerate(pasos): st.checkbox(f"{i+1}. {p}", key=f"step_{i}")
 def vista_herramientas():
     header_app()
-    if st.button("⬅️ Volver"): 
+    if st.button("⬅️ Volver al Panel"): 
         st.session_state['pantalla'] = 'dashboard'; st.rerun()
     
-    st.markdown('<div class="modulo-header"><h2>🛠️ Herramientas de Boca de Pozo y Torque</h2></div>', unsafe_allow_html=True)
+    st.markdown('<div class="modulo-header"><h2>🛠️ Herramientas de Torque y Calibración</h2></div>', unsafe_allow_html=True)
     
-    t1, t2, t3 = st.tabs(["🔧 Llaves y Calibres", "⚖️ Tablas de Torque", "📏 Simulador Calibrado"])
+    # --- PANELES DE INFORMACIÓN ---
+    tab1, tab2, tab3 = st.tabs(["🔧 Equipos", "📊 Normas y Torques", "📏 Calibración"])
     
-    with t1:
+    with tab1:
         c1, c2 = st.columns(2)
         with c1:
-            st.subheader("Llaves Manuales vs Hidráulicas")
+            st.subheader("Llaves Manuales (Tongs)")
             st.write("""
-            * **Llaves Manuales:** Uso para aproximación y desenoque inicial. Requieren estribo de seguridad.
-            * **Llaves Hidráulicas (Power Tongs):** Garantizan el torque uniforme según API. Crucial para evitar 'saltos' de rosca.
+            - **Uso:** Enrosque inicial y desenrosque de seguridad.
+            - **Seguridad:** Requieren línea de tiro (snub line) y poste de seguridad.
+            - **Norma:** Inspección visual diaria de mordazas (dies).
             """)
         with c2:
-            st.subheader("Chapas Calibre (No-Go Gauges)")
-            st.info("💡 Antes de bajar cualquier herramienta, debe pasar por la chapa calibre para asegurar el OD (diámetro externo) correcto.")
+            st.subheader("Llaves Hidráulicas (Power Tongs)")
+            st.write("""
+            - **Uso:** Torque final controlado.
+            - **Ventaja:** Velocidad constante y torque uniforme.
+            - **Mantenimiento:** Verificar presión de seteo en la unidad de potencia.
+            """)
 
-    with t2:
-        st.subheader("Torques Admisibles para Varillas de Acero")
-        # Datos basados en recomendaciones de fabricantes para la Cuenca Cuyana
-        df_torque = pd.DataFrame({
-            "Diámetro (in)": ["5/8\"", "3/4\"", "7/8\"", "1\"", "1 1/8\""],
-            "Torque Mín (ft-lbs)": [200, 350, 500, 800, 1100],
-            "Torque Máx (ft-lbs)": [350, 600, 900, 1400, 1900]
-        })
-        st.table(df_torque)
-        st.warning("⚠️ El exceso de torque estira el pin de la varilla y causa fallas por fatiga prematura.")
+    with tab2:
+        st.subheader("Torques de Enrosque Sugeridos (API RP 7G-2)")
+        # Datos técnicos para la Cuenca Cuyana
+        data_t = {
+            "Conexión": ["2 3/8\" EUE", "2 7/8\" EUE", "3 1/2\" EUE", "Varilla 3/4\"", "Varilla 7/8\""],
+            "Torque Mín (ft-lbs)": [1200, 1700, 2200, 350, 500],
+            "Torque Óptimo (ft-lbs)": [1500, 2100, 2800, 480, 680],
+            "Torque Máx (ft-lbs)": [1800, 2500, 3400, 600, 860]
+        }
+        df_t = pd.DataFrame(data_t)
+        st.table(df_t)
+        
+        # Gráfica de Tensión vs Torque
+        st.write("**Gráfica de Esfuerzo en la Conexión**")
+        t_range = np.linspace(0, 1000, 20)
+        stress = t_range * 1.5 # Simulación de tensión
+        chart_t = pd.DataFrame({"Torque (ft-lbs)": t_range, "Tensión Pin (psi)": stress}).set_index("Torque (ft-lbs)")
+        st.line_chart(chart_t, width="stretch")
+        st.caption("Zona Verde: Elástica | Zona Roja: Deformación Plástica (Over-torque)")
 
-    with t3:
-        st.subheader("Simulador de Calibración")
-        st.write("Verificación de diámetro de varilla con Chapa Calibre:")
-        diam_nominal = st.selectbox("Seleccione Diámetro Nominal:", ["5/8\"", "3/4\"", "7/8\"", "1\""])
-        lectura_real = st.number_input("Lectura del Calibre (pulgadas):", value=0.875, format="%.3f")
+    with tab3:
+        st.subheader("Uso de Chapas Calibre (Gauges)")
+        st.warning("⚠️ El 'No-Go Gauge' debe ser utilizado antes de cada bajada para asegurar que el OD no esté excedido por incrustaciones o deformación.")
         
-        # Lógica de validación
-        tolerancia = {"5/8\"": 0.625, "3/4\"": 0.750, "7/8\"": 0.875, "1\"": 1.000}
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            medida = st.selectbox("Seleccionar Herramienta a Calibrar:", ["Varilla 3/4\"", "Varilla 7/8\"", "Casing 5 1/2\"", "Tubing 2 7/8\""])
+            lectura = st.number_input("Lectura del Calibre (pulgadas):", format="%.3f", value=0.875)
         
-        if abs(lectura_real - tolerancia[diam_nominal]) < 0.010:
-            st.success(f"✅ HERRAMIENTA CALIBRADA. Pasa por la chapa {diam_nominal}.")
-        else:
-            st.error(f"🚨 HERRAMIENTA FUERA DE CALIBRE. No debe bajar al pozo.")            
+        with col_c2:
+            # Lógica simple de verificación
+            limites = {"Varilla 3/4\"": 0.750, "Varilla 7/8\"": 0.875, "Casing 5 1/2\"": 5.500, "Tubing 2 7/8\"": 2.875}
+            diff = abs(lectura - limites[medida])
+            
+            if diff < 0.015:
+                st.success("✅ HERRAMIENTA DENTRO DE TOLERANCIA")
+                st.balloons()
+            else:
+                st.error("🚨 FUERA DE CALIBRE: No bajar al pozo.")           
 def monitor_barreras_seguridad():
     st.subheader("🛡️ Monitor de Barreras de Seguridad")
     
@@ -991,4 +1012,5 @@ else:
          vista_well_control()
     elif pantalla == "monitor_barreras_seguridad":
          vista_monitor_barreras_seguridad()
-        
+    elif pantalla == "herramientas":
+         vista_herramientas()     
