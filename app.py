@@ -212,12 +212,32 @@ def vista_dashboard():
 
     st.divider()
 
-    # --- FILA 2: INGENIERÍA Y ADMINISTRACIÓN (Íconos Técnicos) ---
+    # --- FILA 2: INGENIERÍA Y ADMINISTRACIÓN (Corregido) ---
     ca, cb, cc, cd = st.columns(4)
-    with ca: st.info("🧮 PUNTO LIBRE"); if st.button("Cálculos"): st.session_state['pantalla'] = 'punto_libre'; st.rerun()
-    with cb: st.warning("🛡️ SEGURIDAD"); if st.button("Manual HSE"): st.session_state['pantalla'] = 'hse'; st.rerun()
-    with cc: st.success("🔬 INGENIERÍA"); if st.button("Well Control"): st.session_state['pantalla'] = 'well_control'; st.rerun()
-    with cd: st.error("🔧 HERRAMIENTAS"); if st.button("Torque/Calibración"): st.session_state['pantalla'] = 'herramientas'; st.rerun()
+    
+    with ca: 
+        st.info("🧮 PUNTO LIBRE")
+        if st.button("Cálculos", key="btn_calc_pl"): 
+            st.session_state['pantalla'] = 'punto_libre'
+            st.rerun()
+            
+    with cb: 
+        st.warning("🛡️ SEGURIDAD")
+        if st.button("Manual HSE", key="btn_hse"): 
+            st.session_state['pantalla'] = 'hse'
+            st.rerun()
+            
+    with cc: 
+        st.success("🔬 INGENIERÍA")
+        if st.button("Well Control", key="btn_wc"): 
+            st.session_state['pantalla'] = 'well_control'
+            st.rerun()
+            
+    with cd: 
+        st.error("🔧 HERRAMIENTAS")
+        if st.button("Torque/Calibración", key="btn_torque"): 
+            st.session_state['pantalla'] = 'herramientas'
+            st.rerun()
 def vista_legajo():
     header_app()
     if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
