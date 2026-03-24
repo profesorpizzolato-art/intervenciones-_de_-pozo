@@ -618,3 +618,13 @@ def vista_ranking():
         st.rerun()
 # Al final de app.py
     elif p == 'ranking': vista_ranking()
+# --- LÓGICA DE NAVEGACIÓN (INDISPENSABLE AL FINAL) ---
+    if not st.session_state['auth']:
+    vista_registro()
+   else:
+       p = st.session_state['pantalla']
+    if p == 'dashboard': vista_dashboard()
+    elif p == 'legajo': vista_legajo()
+    elif p == 'simulador': vista_simulador_operativo()
+    elif p == 'hse': vista_hse_seguridad()
+    # Agrega aquí las llamadas a las otras funciones si las creas
