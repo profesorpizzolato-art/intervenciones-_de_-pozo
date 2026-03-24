@@ -631,4 +631,4 @@ def vista_ranking():
         st.session_state['ranking'] = pd.DataFrame(columns=["Operador", "Puntaje", "Estado", "Pozo"])
         st.rerun()
 # Al final de app.py
-elif p == 'ranking': vista_ranking()
+    elif p == 'ranking': vista_ranking()
