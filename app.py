@@ -169,12 +169,14 @@ def vista_dashboard():
     """, unsafe_allow_html=True)
     
     # --- FILA 1: OPERACIONES PRINCIPALES CON IMÁGENES DE ALTO IMPACTO ---
+  # --- FILA 1: OPERACIONES PRINCIPALES ---
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        # IMAGEN: Carpeta de legajo técnica sobre un escritorio en el yacimiento
+        # IMAGEN: Planos técnicos y carpetas de ingeniería
+        img_activos = "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&h=400"
         st.markdown(f"""
-            <div class="card-tecnica-img" style="background-image: url('https://image.freepik.com/free-photo/industrial-files-engineering-notebooks-oil-drilling-rig_1411-209.jpg');">
+            <div class="card-tecnica-img" style="background-image: url('{img_activos}');">
                 <div class="card-text-overlay">
                     <h3>📋 Gestión de Activos</h3>
                     <p>Acceso a legajos técnicos y diseño de pozos de la Cuenca Cuyana.</p>
@@ -185,9 +187,10 @@ def vista_dashboard():
             st.session_state['pantalla'] = 'legajo'; st.rerun()
             
     with col2:
-        # IMAGEN: Equipo de Pulling operando en Mendoza (Torre al cielo)
+        # IMAGEN: Torre de perforación/pulling real
+        img_simulador = "https://images.unsplash.com/photo-1516937941344-00b4e0337589?auto=format&fit=crop&w=600&h=400"
         st.markdown(f"""
-            <div class="card-tecnica-img" style="background-image: url('https://image.freepik.com/free-photo/rig-operation-crane-with-pipes-rig_1127-149.jpg');">
+            <div class="card-tecnica-img" style="background-image: url('{img_simulador}');">
                 <div class="card-text-overlay">
                     <h3>🏗️ Simulador Pulling</h3>
                     <p>Práctica de maniobras de pesca y eventos operativos a tiempo real.</p>
@@ -198,9 +201,10 @@ def vista_dashboard():
             st.session_state['pantalla'] = 'simulador'; st.rerun()
             
     with col3:
-        # IMAGEN: Trofeo dorado profesional sobre un fondo oscuro y elegante
+        # IMAGEN: Tablero de control con luces y métricas (representando el ranking/éxito)
+        img_ranking = "https://images.unsplash.com/photo-1551288049-bbbda536339a?auto=format&fit=crop&w=600&h=400"
         st.markdown(f"""
-            <div class="card-tecnica-img" style="background-image: url('https://image.freepik.com/free-photo/award-winner-trophy-against-dark-background_1411-202.jpg');">
+            <div class="card-tecnica-img" style="background-image: url('{img_ranking}');">
                 <div class="card-text-overlay">
                     <h3>🏆 Ranking MENFA</h3>
                     <p>Tabla de eficiencia operativa y cuadro de honor de los mejores operadores.</p>
@@ -209,9 +213,6 @@ def vista_dashboard():
         """, unsafe_allow_html=True)
         if st.button("Ver Ranking", key="btn_ranking"): 
             st.session_state['pantalla'] = 'ranking'; st.rerun()
-
-    st.divider()
-
     # --- FILA 2: INGENIERÍA Y ADMINISTRACIÓN (Corregido) ---
     ca, cb, cc, cd = st.columns(4)
     
