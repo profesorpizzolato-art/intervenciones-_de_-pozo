@@ -1,5 +1,5 @@
 import streamlit as st
-
+import pandas as pd  # <--- Verifica que esta línea esté presente
 # 1. CONFIGURACIÓN E IDIOMA
 st.set_page_config(page_title="IPCL MENFA - Sistema de Gestión Técnica", layout="wide")
 
