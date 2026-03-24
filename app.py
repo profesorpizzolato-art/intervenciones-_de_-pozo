@@ -768,9 +768,9 @@ else:
         vista_ranking()
     elif pantalla == "manual":
          vista_manual()
-    elif pantalla == "diploma"
+    elif pantalla == "diploma":
          vista_diploma()
-    elif pantalla == "formulas"
+    elif pantalla == "formulas":
          vista_formulas()
 
     
