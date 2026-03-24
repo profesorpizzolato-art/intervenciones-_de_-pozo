@@ -92,41 +92,72 @@ def vista_registro():
 
 def vista_dashboard():
     header_app()
-    st.title("Panel de Control de Intervenciones")
+    st.title("Panel de Control de Intervenciones - IPCL MENFA")
+    
+    # --- FILA 1: OPERACIONES PRINCIPALES ---
     c1, c2, c3 = st.columns(3)
     
     with c1:
         st.markdown('<div class="card-tecnica"><h3>📋 Gestión de Activos</h3><p>Legajos técnicos y datos de diseño de pozo.</p></div>', unsafe_allow_html=True)
-        if st.button("Ver Legajos"): st.session_state['pantalla'] = 'legajo'; st.rerun()
+        if st.button("Ver Legajos"): 
+            st.session_state['pantalla'] = 'legajo'
+            st.rerun()
+            
     with c2:
         st.markdown('<div class="card-tecnica"><h3>🏗️ Simulador Pulling</h3><p>Operación de pesca con eventos en tiempo real.</p></div>', unsafe_allow_html=True)
-        if st.button("Abrir Simulador"): st.session_state['pantalla'] = 'simulador'; st.rerun()
+        if st.button("Abrir Simulador"): 
+            st.session_state['pantalla'] = 'simulador'
+            st.rerun()
+            
     with c3:
         st.markdown('<div class="card-tecnica"><h3>🏆 Ranking MENFA</h3><p>Cuadro de honor y eficiencia operativa.</p></div>', unsafe_allow_html=True)
-        if st.button("Ver Ranking"): st.session_state['pantalla'] = 'ranking'; st.rerun()
+        if st.button("Ver Ranking"): 
+            st.session_state['pantalla'] = 'ranking'
+            st.rerun()
+    
+    st.divider()
+    
+    # --- FILA 2: INGENIERÍA Y HERRAMIENTAS ---
+    ca, cb, cc, cd = st.columns(4)
+    with ca: 
+        if st.button("🧮 Punto Libre"): st.session_state['pantalla'] = 'punto_libre'; st.rerun()
+    with cb:
+        if st.button("🛡️ Well Control"): st.session_state['pantalla'] = 'well_control'; st.rerun()
+    with cc:
+        if st.button("🔬 Fórmulas"): st.session_state['pantalla'] = 'formulas'; st.rerun()
+    with cd:
+        if st.button("🔧 Herramientas / Torque"): st.session_state['pantalla'] = 'herramientas'; st.rerun()
 
     st.divider()
-    ca, cb, cc = st.columns(3)
-    with ca: 
-        if st.button("🧮 Calculadora de Punto Libre"): st.session_state['pantalla'] = 'punto_libre'; st.rerun()
-    with cb:
-        if st.button("📖 Manual de Gestión (OPEX)"): st.session_state['pantalla'] = 'manual'; st.rerun()
-    with cc:
-        if st.button("🛡️ HSE y Seguridad"): st.session_state['pantalla'] = 'hse'; st.rerun()
+
+    # --- FILA 3: ESTADÍSTICAS PARA EL INSTRUCTOR ---
+    st.subheader("📊 Monitor de Rendimiento Académico")
     
-    with cd: # O la columna que tengas libre
-        if st.button("🔧 Herramientas / Torque"): st.session_state['pantalla'] = 'herramientas'; st.rerun()        
-           st.write("**Esquema del Pozo**") 
-           graf_data = pd.DataFrame({
-           'Tramo': ['Pozo'],
-           'Libre (m)': [prof_m],
-           'Atrapado (m)': [max(0, total_m - prof_m)]
-           }).set_index('Tramo')
-           st.bar_chart(graf_data, color=["#2ecc71", "#e74c3c"], width="stretch")
-    with col_graph:
-        y = np.linspace(25000, tension, 15) + np.random.normal(0, 1000, 15)
-        # Actualizado para evitar el warning
-        st.line_chart(y, width="stretch")
+    df_rank = st.session_state['ranking']
+    if not df_rank.empty:
+        # Lógica de aprobación (4000 puntos para el diploma)
+        aprobados = len(df_rank[df_rank['Puntaje'] >= 4000])
+        no_alcanzados = len(df_rank[df_rank['Puntaje'] < 4000])
+        promedio = df_rank['Puntaje'].mean()
+
+        col_stat1, col_stat2, col_stat3 = st.columns([1, 1, 2])
+        
+        with col_stat1:
+            st.metric("Alumnos Certificados", f"{aprobados}", delta="Certificables", delta_color="normal")
+        with col_stat2:
+            st.metric("Promedio Grupal", f"{promedio:.0f} pts")
+            
+        with col_stat3:
+            # Gráfico de rendimiento grupal
+            stats_data = pd.DataFrame({
+                'Estado': ['Certificados', 'En Proceso'],
+                'Cantidad': [aprobados, no_alcanzados]
+            }).set_index('Estado')
+            
+            st.bar_chart(stats_data, color=["#2ecc71"], width="stretch")
+            st.caption("Distribución de alumnos según puntaje de corte (4000 pts).")
+    else:
+        st.info("Aún no hay datos de entrenamiento registrados.")
 def vista_legajo():
     header_app()
     if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
