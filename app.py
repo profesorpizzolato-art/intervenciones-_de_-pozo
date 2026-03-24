@@ -590,8 +590,8 @@ def calcular_puntaje_final(novedad_msg, tension_max, limite, hse_ok, tiempo):
     if tiempo < 10: score += (10 - tiempo) * 100
     return score      
         # 1. Corrección del final de la función del simulador
-    if st.session_state['ranking'] = pd.concat([st.session_state['ranking'], pd.DataFrame([nuevo_rank])], ignore_index=True)
-        st.success("Operación reportada al Ranking.")
+    st.session_state['ranking'] = pd.concat([st.session_state['ranking'], pd.DataFrame([nuevo_rank])], ignore_index=True)
+    st.success("Operación reportada al Ranking.")
     if st.button("Finalizar"):
     puntos = 3000
      st.session_state['ranking'] = pd.concat(...) # <-- ERROR: ese espacio extra
