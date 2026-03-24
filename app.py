@@ -156,3 +156,24 @@ else:
     elif st.session_state['pantalla'] == 'manual': vista_manual()
     elif st.session_state['pantalla'] == 'simulador': vista_simulador()
     elif st.session_state['pantalla'] == 'ingenieria': vista_ingenieria()
+def vista_diagnostico():
+    st.header("🔬 Laboratorio de Análisis de Fallas")
+    st.write("Identifique la causa raíz de la rotura para optimizar la frecuencia de intervención.")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.image("https://via.placeholder.com/400x300.png?text=Imagen+de+Varilla+Cortada", caption="Muestra recuperada del pozo")
+    
+    with col2:
+        opcion = st.radio("¿Qué tipo de falla observa?", 
+                          ["Fatiga por Ciclos", "Corrosión por CO2/H2S", "Desgaste por Rozamiento", "Corte por Sobre-tensión"])
+        
+        if st.button("Registrar Diagnóstico"):
+            if opcion == "Fatiga por Ciclos":
+                st.success("Correcto. Se recomienda revisar el diseño de la sarta o el balance del A.I.B.")
+            else:
+                st.warning("El patrón indica fatiga. Revise los registros de torque de la última intervención.")
+
+    st.markdown("""
+    > **Nota Técnica:** El diagnóstico correcto permite alcanzar la meta de **2 años de operatividad**, reduciendo el 30% del OPEX mencionado en los manuales de MENFA.
+    """)
