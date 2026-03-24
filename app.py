@@ -76,8 +76,10 @@ def generar_contingencia():
 def vista_registro():
     c1, c2, c3 = st.columns([1, 1.5, 1])
     with c2:
-        st.image("https://via.placeholder.com/600x200.png?text=IPCL+MENFA+MENDOZA", use_container_width=True)
+        # Cambio de use_container_width por width='stretch'
+        st.image("logo_menfa.png", width="stretch") 
         st.markdown("<h2 style='text-align: center;'>Acceso al Sistema Técnico</h2>", unsafe_allow_html=True)
+        # ... resto del código
         with st.form("login"):
             n = st.text_input("Nombre Completo")
             d = st.text_input("DNI / Legajo")
