@@ -237,50 +237,70 @@ def generar_contingencia():
     st.session_state['evento_activo'] = random.choice(eventos)
 
 
-def vista_ingenieria_punto_libre():
-    """Módulo para calcular la profundidad del atrapamiento (Stretch Method)."""
-    header_app() # Tu función de encabezado institucional
+def vista_punto_libre():
+    header_app()
     if st.button("⬅️ Volver al Panel"): 
         st.session_state['pantalla'] = 'dashboard'
         st.rerun()
+        
+    st.markdown('<div class="modulo-header"><h2>🧮 Ingeniería: Cálculo de Punto Libre (Stretch)</h2></div>', unsafe_allow_html=True)
     
-    st.markdown('<div class="modulo-header"><h2>🧮 Ingeniería de Pesca: Cálculo de Punto Libre</h2></div>', unsafe_allow_html=True)
+    st.info("""
+    **Procedimiento Operativo:**
+    1. Tensione la sarta hasta el peso neutral ($P_1$).
+    2. Realice una sobre-tracción ($P_2$) sin exceder el límite elástico.
+    3. Mida el estiramiento observado en pulgadas ($E$).
+    """)
+
+    col1, col2 = st.columns(2)
     
-    st.write("Si la sarta está atrapada por formación o arena, determine la profundidad del agarre (Punto Libre) antes de cortar.")
-    
-    col_input, col_res = st.columns(2)
-    
-    with col_input:
-        st.subheader("Datos de Campo (API RP 11BR)")
-        diametro = st.selectbox("Diámetro de Varilla (pulg):", ["3/4", "7/8", "1"])
+    with col1:
+        st.subheader("📥 Datos de Entrada")
+        # Tabla de constantes API RP 11BR
+        tabla_constantes = {
+            "5/8\" (0.522)": 0.522,
+            "3/4\" (0.751)": 0.751,
+            "7/8\" (1.022)": 1.022,
+            "1\" (1.336)": 1.336,
+            "1 1/8\" (1.691)": 1.691
+        }
         
-        c1, c2 = st.columns(2)
-        p1 = c1.number_input("Tensión Base (F1) (lbs)", value=20000, step=1000)
-        p2 = c2.number_input("Tensión de Tracción (F2) (lbs)", value=40000, step=1000)
+        seleccion = st.selectbox("Diámetro de Varilla (Constante Et):", list(tabla_constantes.keys()))
+        et_val = tabla_constantes[seleccion]
         
-        estiramiento = st.number_input("Estiramiento Observado (∆L) (pulgadas)", value=12.0)
+        p1 = st.number_input("Tensión Inicial $P_1$ (lbs)", value=15000, step=500)
+        p2 = st.number_input("Tensión Final $P_2$ (lbs)", value=30000, step=500)
+        estiramiento = st.number_input("Estiramiento Medido $E$ (pulgadas)", value=10.0, step=0.5)
+
+    with col2:
+        st.subheader("📊 Resultado del Análisis")
+        delta_p = p2 - p1
         
-        # Constantes elásticas simplificadas (basadas en E=30x10^6 psi)
-        constantes_elasticas = {"3/4": 0.75, "7/8": 0.88, "1": 1.12}
-        
-    with col_res:
-        st.subheader("Resultado del Análisis")
-        diff_tension = p2 - p1
-        
-        if diff_tension > 0:
-            # Fórmula de Punto Libre para profundidad en metros
-            prof_libre = (estiramiento * constantes_elasticas[diametro] * 1000000) / diff_tension
-            st.metric("Profundidad de Atrapamiento Estimada", f"{prof_libre:.0f} metros")
+        if delta_p > 0:
+            # Fórmula API: L = (E * Et * 1.000.000) / Delta P
+            # Resultado en pies, convertido a metros (* 0.3048)
+            prof_pies = (estiramiento * et_val * 1000000) / delta_p
+            prof_metros = prof_pies * 0.3048
             
-            # Validación con el pozo seleccionado
+            st.metric("Profundidad del Atrapamiento", f"{prof_metros:.2f} metros")
+            
+            # Comparación con el pozo activo si existe
             if st.session_state['pozo_seleccionado']:
-                prof_bomba = st.session_state['pozo_seleccionado']['Profundidad (m)']
-                if prof_libre < prof_bomba * 0.85:
-                    st.error(f"¡Atención! El agarre está a {prof_bomba - prof_libre:.0f}m arriba de la bomba. Posible colapso de tubing o arenamiento masivo.")
+                prof_total = st.session_state['pozo_seleccionado']['Profundidad (m)']
+                st.write(f"**Profundidad Total del Pozo:** {prof_total} m")
+                
+                progreso = min(prof_metros / prof_total, 1.0)
+                st.progress(progreso)
+                
+                if prof_metros < prof_total * 0.9:
+                    st.warning(f"⚠️ El agarre está a {prof_total - prof_metros:.0f}m por ENCIMA de la bomba. Posible arenamiento o colapso.")
                 else:
-                    st.success("El agarre es cerca de la bomba. Proceda con maniobra de desclave.")
+                    st.success("✅ El agarre parece estar en la zona de la bomba o anclaje.")
         else:
-            st.warning("Ingrese una tensión F2 mayor que F1.")
+            st.error("La Tensión $P_2$ debe ser mayor a $P_1$ para calcular el estiramiento.")
+
+    st.divider()
+    st.caption("Cálculo basado en constantes elásticas para acero (E = 30x10^6 psi) según norma API.")
 def vista_ingenieria_punto_libre():
     """Módulo para calcular la profundidad del atrapamiento (Stretch Method)."""
     header_app() # Tu función de encabezado institucional
