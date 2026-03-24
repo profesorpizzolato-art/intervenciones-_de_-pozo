@@ -138,86 +138,86 @@ def vista_dashboard():
     header_app()
     st.title("Panel de Control de Intervenciones - IPCL MENFA")
     
-    # --- FILA 1: OPERACIONES PRINCIPALES ---
-    c1, c2, c3 = st.columns(3)
-    
-    with c1:
-        st.markdown('<div class="card-tecnica"><h3>📋 Gestión de Activos</h3><p>Legajos técnicos y datos de diseño de pozo.</p></div>', unsafe_allow_html=True)
-        if st.button("Ver Legajos"): 
-            st.session_state['pantalla'] = 'legajo'
-            st.rerun()
+    # --- CSS ACTUALIZADO PARA CARDS CON IMÁGENES DE FONDO ---
+    st.markdown("""
+        <style>
+            .container-tecnico {
+                display: flex; gap: 20px; justify-content: center;
+                flex-wrap: wrap; margin-top: 20px;
+            }
+            .card-tecnica-img {
+                flex: 1; min-width: 250px;
+                height: 300px; padding: 25px; border-radius: 12px;
+                color: white; font-weight: bold; position: relative;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+                background-size: cover; background-position: center;
+                transition: transform 0.3s ease;
+                display: flex; flex-direction: column; justify-content: space-between;
+            }
+            .card-tecnica-img:hover { transform: translateY(-10px); }
             
-    with c2:
-        st.markdown('<div class="card-tecnica"><h3>🏗️ Simulador Pulling</h3><p>Operación de pesca con eventos en tiempo real.</p></div>', unsafe_allow_html=True)
-        if st.button("Abrir Simulador"): 
-            st.session_state['pantalla'] = 'simulador'
-            st.rerun()
-            
-    with c3:
-        st.markdown('<div class="card-tecnica"><h3>🏆 Ranking MENFA</h3><p>Cuadro de honor y eficiencia operativa.</p></div>', unsafe_allow_html=True)
-        if st.button("Ver Ranking"): 
-            st.session_state['pantalla'] = 'ranking'
-            st.rerun()
+            /* Sombreado de degradado para que el texto resalte */
+            .card-text-overlay {
+                background: linear-gradient(0deg, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0) 100%);
+                position: absolute; bottom: 0; left: 0; width: 100%;
+                height: 100%; border-radius: 12px; padding: 25px;
+                display: flex; flex-direction: column; justify-content: flex-end;
+            }
+            .card-text-overlay h3 { color: #fdfdfd; text-transform: uppercase; margin-bottom: 5px; }
+            .card-text-overlay p { color: #e0e0e0; font-size: 1.1em; }
+        </style>
+    """, unsafe_allow_html=True)
     
+    # --- FILA 1: OPERACIONES PRINCIPALES CON IMÁGENES DE ALTO IMPACTO ---
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # IMAGEN: Carpeta de legajo técnica sobre un escritorio en el yacimiento
+        st.markdown(f"""
+            <div class="card-tecnica-img" style="background-image: url('https://image.freepik.com/free-photo/industrial-files-engineering-notebooks-oil-drilling-rig_1411-209.jpg');">
+                <div class="card-text-overlay">
+                    <h3>📋 Gestión de Activos</h3>
+                    <p>Acceso a legajos técnicos y diseño de pozos de la Cuenca Cuyana.</p>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        if st.button("Ver Legajos", key="btn_legajos"): 
+            st.session_state['pantalla'] = 'legajo'; st.rerun()
+            
+    with col2:
+        # IMAGEN: Equipo de Pulling operando en Mendoza (Torre al cielo)
+        st.markdown(f"""
+            <div class="card-tecnica-img" style="background-image: url('https://image.freepik.com/free-photo/rig-operation-crane-with-pipes-rig_1127-149.jpg');">
+                <div class="card-text-overlay">
+                    <h3>🏗️ Simulador Pulling</h3>
+                    <p>Práctica de maniobras de pesca y eventos operativos a tiempo real.</p>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        if st.button("Abrir Simulador", key="btn_simulador"): 
+            st.session_state['pantalla'] = 'simulador'; st.rerun()
+            
+    with col3:
+        # IMAGEN: Trofeo dorado profesional sobre un fondo oscuro y elegante
+        st.markdown(f"""
+            <div class="card-tecnica-img" style="background-image: url('https://image.freepik.com/free-photo/award-winner-trophy-against-dark-background_1411-202.jpg');">
+                <div class="card-text-overlay">
+                    <h3>🏆 Ranking MENFA</h3>
+                    <p>Tabla de eficiencia operativa y cuadro de honor de los mejores operadores.</p>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        if st.button("Ver Ranking", key="btn_ranking"): 
+            st.session_state['pantalla'] = 'ranking'; st.rerun()
+
     st.divider()
-    
-    # --- FILA 2: INGENIERÍA Y HERRAMIENTAS ---
+
+    # --- FILA 2: INGENIERÍA Y ADMINISTRACIÓN (Íconos Técnicos) ---
     ca, cb, cc, cd = st.columns(4)
-    with ca: 
-        if st.button("🧮 Punto Libre"): st.session_state['pantalla'] = 'punto_libre'; st.rerun()
-    with cb:
-        if st.button("🛡️ Well Control"): st.session_state['pantalla'] = 'well_control'; st.rerun()
-    with cc:
-        if st.button("🔬 Fórmulas"): st.session_state['pantalla'] = 'formulas'; st.rerun()
-    with cd:
-        if st.button("🔧 Herramientas / Torque"): st.session_state['pantalla'] = 'herramientas'; st.rerun()
-
-    st.divider()
-
-    # --- FILA 3: ESTADÍSTICAS PARA EL INSTRUCTOR ---
-    st.subheader("📊 Monitor de Rendimiento Académico")
-    
-    df_rank = st.session_state['ranking']
-    if not df_rank.empty:
-        # Lógica de aprobación (4000 puntos para el diploma)
-        aprobados = len(df_rank[df_rank['Puntaje'] >= 4000])
-        no_alcanzados = len(df_rank[df_rank['Puntaje'] < 4000])
-        promedio = df_rank['Puntaje'].mean()
-
-        col_stat1, col_stat2, col_stat3 = st.columns([1, 1, 2])
-        
-        with col_stat1:
-            st.metric("Alumnos Certificados", f"{aprobados}", delta="Certificables", delta_color="normal")
-        with col_stat2:
-            st.metric("Promedio Grupal", f"{promedio:.0f} pts")
-            
-        with col_stat3:
-            # Gráfico de rendimiento grupal
-            stats_data = pd.DataFrame({
-                'Estado': ['Certificados', 'En Proceso'],
-                'Cantidad': [aprobados, no_alcanzados]
-            }).set_index('Estado')
-            
-            st.bar_chart(stats_data, color=["#2ecc71"], width="stretch")
-            st.caption("Distribución de alumnos según puntaje de corte (4000 pts).")
-    else:
-        st.info("Aún no hay datos de entrenamiento registrados.")
-        # Al final del dashboard, después de los gráficos
-    if not st.session_state['ranking'].empty:
-        st.divider()
-        st.subheader("📥 Exportar Datos Académicos")
-        
-        df_para_excel = st.session_state['ranking'].copy()
-        # Generamos el archivo
-        archivo_excel = generar_excel_reporte(df_para_excel)
-        
-        st.download_button(
-            label="📄 Descargar Reporte de Alumnos (Excel)",
-            data=archivo_excel,
-            file_name=f"Informe_MENFA_{pd.Timestamp.now().strftime('%Y%m%d')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key="btn_descarga_excel_unico" # <--- CLAVE PARA EVITAR ERRORES
-        )
+    with ca: st.info("🧮 PUNTO LIBRE"); if st.button("Cálculos"): st.session_state['pantalla'] = 'punto_libre'; st.rerun()
+    with cb: st.warning("🛡️ SEGURIDAD"); if st.button("Manual HSE"): st.session_state['pantalla'] = 'hse'; st.rerun()
+    with cc: st.success("🔬 INGENIERÍA"); if st.button("Well Control"): st.session_state['pantalla'] = 'well_control'; st.rerun()
+    with cd: st.error("🔧 HERRAMIENTAS"); if st.button("Torque/Calibración"): st.session_state['pantalla'] = 'herramientas'; st.rerun()
 def vista_legajo():
     header_app()
     if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
