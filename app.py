@@ -1,205 +1,132 @@
 import streamlit as st
 import pandas as pd
 
-# 1. CONFIGURACIÓN INICIAL
-st.set_page_config(page_title="Simulador MENFA", layout="wide")
-
-# Inicializar estados de sesión si no existen
-if 'autenticado' not in st.session_state:
-    st.session_state['autenticado'] = False
-if 'usuario_data' not in st.session_state:
-    st.session_state['usuario_data'] = {}
-
-# 2. FUNCIÓN DE LOGO Y REGISTRO
-def mostrar_registro():
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        # Logo MENFA (Imagen inicial)
-        st.image("https://via.placeholder.com/600x200.png?text=IPCL+MENFA+-+MENDOZA", use_container_width=True)
-        st.subheader("📝 Registro de Operaciones")
-        
-        with st.form("registro_usuario"):
-            nombre = st.text_input("Nombre y Apellido")
-            legajo = st.text_input("Legajo / DNI")
-            turno = st.selectbox("Turno", ["Mañana", "Tarde", "Noche"])
-            
-            btn_registro = st.form_submit_button("Ingresar al Sistema")
-            
-            if btn_registro:
-                if nombre and legajo:
-                    st.session_state['autenticado'] = True
-                    st.session_state['usuario_data'] = {
-                        "nombre": nombre,
-                        "legajo": legajo,
-                        "turno": turno
-                    }
-                    st.rerun()
-                else:
-                    st.warning("Por favor, complete sus datos para continuar.")
-
-# 3. FUNCIÓN DEL SIMULADOR PRINCIPAL
-def mostrar_simulador():
-    # Encabezado con datos del usuario
-    c1, c2 = st.columns([3, 1])
-    with c1:
-        st.title("🏗️ Simulador de Pulling y Pesca")
-        user = st.session_state['usuario_data']
-        st.write(f"**Operador:** {user['nombre']} | **Legajo:** {user['legajo']} | **Turno:** {user['turno']}")
-    with c2:
-        if st.button("Cerrar Sesión", key="logout_btn"):
-            st.session_state['autenticado'] = False
-            st.rerun()
-
-    st.divider()
-
-    # --- SIDEBAR CON KEYS ÚNICAS (Para evitar el error DuplicateElementId) ---
-    st.sidebar.header("⚙️ Parámetros de Simulación")
-    
-    tipo_op = st.sidebar.selectbox(
-        "Seleccione el Caso de Pesca:",
-        ["1er Caso: Vástago Cortado", "2do Caso: Pesca de Varilla"],
-        key="sb_tipo_operacion" # Identificador único
-    )
-    
-    grado_varilla = st.sidebar.selectbox(
-        "Grado de Varilla (API 11B):",
-        ["Grado D", "Grado KD", "Grado K"],
-        key="sb_grado_varilla" # Identificador único
-    )
-
-    # --- CUERPO DEL SIMULADOR ---
-    tab1, tab2 = st.tabs(["📋 Programa de Pozo", "🧮 Cálculos de Ingeniería"])
-
-    with tab1:
-        st.subheader(f"Guía Operativa: {tipo_op}")
-        # Lógica de pasos basada en tus archivos DOCX
-        if "Vástago" in tipo_op:
-            pasos = ["Descomprimir columnas", "Retirar cabeza de mula", "Capturar vástago", "Montar BOP de varillas"]
-        else:
-            pasos = ["Ahogar pozo (API RP 59)", "Retirar vástago", "Sacar varillas en tiros dobles", "Bajar pescador"]
-            
-        for i, p in enumerate(pasos):
-            st.checkbox(p, key=f"step_{i}")
-
-    with tab2:
-        st.subheader("Cálculos de Control de Pozos")
-        st.info("Sección técnica para cálculo de densidades y volúmenes de ahogo.")
-        # Aquí puedes agregar las fórmulas que definimos antes
-
-# 4. CONTROL DE FLUJO
-if not st.session_state['autenticado']:
-    mostrar_registro()
-else:
-    mostrar_simulador()
-import streamlit as st
-import pandas as pd
-
 # 1. CONFIGURACIÓN DE ESTILO Y PÁGINA
-st.set_page_config(page_title="MENFA - Gestión de Intervenciones", layout="wide")
+st.set_page_config(page_title="IPCL MENFA - Gestión de Operaciones", layout="wide")
 
-# CSS para diseño de "Cards" (Módulos)
+# Diseño estético (CSS)
 st.markdown("""
     <style>
+    .main { background-color: #f0f2f6; }
     .modulo-card {
         background-color: #ffffff;
-        padding: 20px;
-        border-radius: 10px;
-        border-left: 5px solid #00457C;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+        padding: 25px;
+        border-radius: 12px;
+        border-top: 6px solid #00457C;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         margin-bottom: 20px;
+        min-height: 220px;
     }
     .stButton>button {
         width: 100%;
-        border-radius: 5px;
+        border-radius: 8px;
         background-color: #00457C;
         color: white;
+        font-weight: bold;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. GESTIÓN DE SESIÓN
+# 2. GESTIÓN DE SESIÓN (Control de navegación)
+if 'auth' not in st.session_state:
+    st.session_state['auth'] = False
 if 'pantalla' not in st.session_state:
-    st.session_state['pantalla'] = 'inicio'
-if 'usuario' not in st.session_state:
-    st.session_state['usuario'] = None
+    st.session_state['pantalla'] = 'dashboard'
+if 'user' not in st.session_state:
+    st.session_state['user'] = {}
 
-# --- COMPONENTE: HEADER ---
-def mostrar_header():
-    c1, c2 = st.columns([3, 1])
-    with c1:
-        st.image("https://via.placeholder.com/400x100.png?text=IPCL+MENFA+MENDOZA", width=300)
-    with c2:
-        if st.session_state['usuario']:
-            st.write(f"👤 **{st.session_state['usuario']}**")
-            if st.button("Cerrar Sesión"):
-                st.session_state['usuario'] = None
-                st.session_state['pantalla'] = 'inicio'
-                st.rerun()
+# --- COMPONENTES INTERNOS ---
 
-# --- PANTALLA: REGISTRO INICIAL ---
-def pantalla_registro():
+def login_registro():
     col1, col2, col3 = st.columns([1, 1.5, 1])
     with col2:
-        st.markdown("<h2 style='text-align: center;'>Sistema de Control de Pozos</h2>", unsafe_allow_html=True)
-        with st.form("registro_form"):
-            nombre = st.text_input("Nombre del Instructor/Alumno")
-            legajo = st.text_input("DNI / Matrícula")
-            submit = st.form_submit_button("Ingresar a la Plataforma")
-            if submit and nombre and legajo:
-                st.session_state['usuario'] = nombre
-                st.rerun()
+        st.image("https://via.placeholder.com/600x200.png?text=IPCL+MENFA+MENDOZA", use_container_width=True)
+        st.markdown("<h2 style='text-align: center;'>Acceso al Sistema Técnico</h2>", unsafe_allow_html=True)
+        with st.form("form_registro"):
+            nombre = st.text_input("Instructor / Alumno")
+            dni = st.text_input("DNI o Legajo")
+            rol = st.selectbox("Rol", ["Instructor", "Alumno", "Supervisor de Campo"])
+            if st.form_submit_button("Ingresar"):
+                if nombre and dni:
+                    st.session_state['auth'] = True
+                    st.session_state['user'] = {"nombre": nombre, "rol": rol}
+                    st.rerun()
+                else:
+                    st.error("Complete los datos de registro.")
 
-# --- PANTALLA: MENÚ DE MÓDULOS (Dashboard) ---
-def dashboard_principal():
+def mostrar_header():
+    c1, c2 = st.columns([4, 1])
+    with c1:
+        st.write(f"🏢 **IPCL MENFA** | Usuario: {st.session_state['user']['nombre']} ({st.session_state['user']['rol']})")
+    with c2:
+        if st.button("Cerrar Sesión"):
+            st.session_state['auth'] = False
+            st.rerun()
+    st.divider()
+
+# --- MÓDULOS DEL DASHBOARD ---
+
+def dashboard():
     mostrar_header()
-    st.title("Panel de Control Educativo")
+    st.title("Panel Principal de Aplicación")
     
-    # ORGANIZACIÓN EN GRILLA (Módulos de todo lo hablado)
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.markdown('<div class="modulo-card"><h3>📖 Contenido Teórico</h3><p>Acceso a la Clase 11: Conceptos de Pulling, costos operativos (30%) y objetivos de frecuencia.</p></div>', unsafe_allow_html=True)
-        if st.button("Ver Clase 11", key="btn_clase"):
-            st.session_state['pantalla'] = 'clase'
-            st.rerun()
+        st.markdown('<div class="modulo-card"><h3>📖 Módulo Teórico</h3><p>Conceptos de Pulling, costos (30% OPEX) y objetivos de mantenimiento (2 años/pozo).</p></div>', unsafe_allow_html=True)
+        if st.button("Abrir Manual Clase 11"): st.session_state['pantalla'] = 'clase'; st.rerun()
 
     with col2:
-        st.markdown('<div class="modulo-card"><h3>🏗️ Simulador de Pesca</h3><p>Módulos de Vástago Cortado y Pesca de Varillas con monitor Martin Decker.</p></div>', unsafe_allow_html=True)
-        if st.button("Abrir Simulador", key="btn_sim"):
-            st.session_state['pantalla'] = 'simulador'
-            st.rerun()
+        st.markdown('<div class="modulo-card"><h3>🏗️ Simulador de Pesca</h3><p>Programas de pozo interactivos para Vástago y Varillas con control de peso en vivo.</p></div>', unsafe_allow_html=True)
+        if st.button("Iniciar Simulación"): st.session_state['pantalla'] = 'simulador'; st.rerun()
 
     with col3:
-        st.markdown('<div class="modulo-card"><h3>🧮 Calculadora API</h3><p>Cálculos de ahogo (API RP 59), densidades, volúmenes y tipos de varillas (API 11B).</p></div>', unsafe_allow_html=True)
-        if st.button("Ir a Cálculos", key="btn_calc"):
-            st.session_state['pantalla'] = 'calculos'
-            st.rerun()
+        st.markdown('<div class="modulo-card"><h3>🧮 Ingeniería API</h3><p>Calculadora de ahogo (API RP 59) y especificaciones de varillas (API 11B).</p></div>', unsafe_allow_html=True)
+        if st.button("Ir a Cálculos"): st.session_state['pantalla'] = 'calculos'; st.rerun()
 
-    st.divider()
-    st.subheader("📋 Estado de Normativas")
-    st.info("Cumplimiento actual: API Spec 4F (Estructuras) | API RP 4G (Mantenimiento) | API 11B (Varillas)")
+# --- VISTAS DETALLADAS ---
 
-# --- VISTAS ESPECÍFICAS (SIMULADOR, CÁLCULOS, ETC.) ---
 def vista_simulador():
     mostrar_header()
-    if st.button("⬅️ Volver al Panel"):
-        st.session_state['pantalla'] = 'inicio'
-        st.rerun()
+    if st.button("⬅️ Volver al Panel"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
     
-    st.subheader("Módulo de Simulación en Vivo")
-    op = st.selectbox("Seleccione Programa de Pozo:", ["Vástago Cortado", "Pesca de Varilla"], key="sel_op")
+    st.header("Simulador de Intervenciones")
+    tipo = st.selectbox("Protocolo Operativo:", ["1er Caso: Vástago Cortado", "2do Caso: Pesca de Varilla"], key="sel_sim")
     
-    # Aquí va el monitor de peso y los pasos que definimos antes
-    st.write(f"Ejecutando protocolo para: **{op}**")
-    peso = st.slider("Carga en Gancho (lbs)", 0, 60000, 45000, key="slider_peso")
-    if peso < 35000: st.error("¡PESCA DETECTADA!")
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        st.subheader("Pasos del Programa de Pozo")
+        pasos = ["Check-list API RP 4G", "Descomprimir Columnas", "Ahogar si es necesario"]
+        if "Varilla" in tipo: pasos.extend(["Sacar en tiros dobles", "Bajar pescador"])
+        else: pasos.extend(["Pescar vástago", "Montar BOP de varillas"])
+        
+        for i, p in enumerate(pasos): st.checkbox(p, key=f"p_{i}")
+        
+    with c2:
+        st.info("Monitor de Carga")
+        peso = st.slider("Carga Martin Decker (lbs)", 0, 60000, 45000, key="slider_m")
+        if peso < 35000: st.error("⚠️ PESCA DETECTADA")
+        else: st.success("✅ Peso íntegro")
 
-# --- LÓGICA DE NAVEGACIÓN ---
-if st.session_state['usuario'] is None:
-    pantalla_registro()
+def vista_calculos():
+    mostrar_header()
+    if st.button("⬅️ Volver al Panel"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
+    
+    st.header("Calculadora Técnica API")
+    prof = st.number_input("Profundidad de Bomba (m)", value=1200)
+    presion = st.number_input("Presión de Reservorio (PSI)", value=1500)
+    
+    st.divider()
+    # Fórmulas API integradas
+    p_ft = prof * 3.28
+    densidad = (presion + 200) / (p_ft * 0.052)
+    st.metric("Densidad de Ahogo Requerida (API RP 59)", f"{densidad:.2f} ppg")
+
+# --- CONTROLADOR DE NAVEGACIÓN ---
+if not st.session_state['auth']:
+    login_registro()
 else:
-    if st.session_state['pantalla'] == 'inicio':
-        dashboard_principal()
-    elif st.session_state['pantalla'] == 'simulador':
-        vista_simulador()
-    # Aquí puedes añadir las funciones para 'clase' y 'calculos' siguiendo la misma lógica
+    if st.session_state['pantalla'] == 'dashboard': dashboard()
+    elif st.session_state['pantalla'] == 'simulador': vista_simulador()
+    elif st.session_state['pantalla'] == 'calculos': vista_calculos()
+        
