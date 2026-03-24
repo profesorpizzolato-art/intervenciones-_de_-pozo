@@ -161,7 +161,7 @@ def vista_simulador_operativo():
     datos = st.session_state['pozo_seleccionado']
     st.markdown(f'<div class="modulo-header"><h2>Pesca en Pozo: {datos["Pozo"]}</h2></div>', unsafe_allow_html=True)
 
-    col_ctrl, col_graph = st.columns([1, 2])
+    col_ctrl, col_graph = st.columns([1, 2, 3])
     with col_ctrl:
         if st.button("⏯️ Avanzar Maniobra (Evento)"): generar_contingencia()
         if st.session_state['evento_activo']:
