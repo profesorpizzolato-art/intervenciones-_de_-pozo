@@ -588,7 +588,7 @@ def calcular_puntaje_final(novedad_msg, tension_max, limite, hse_ok, tiempo):
     
     # Eficiencia en tiempo (Supongamos meta de 10hs)
     if tiempo < 10: score += (10 - tiempo) * 100
-   return score      
+    return score      
         # 1. Corrección del final de la función del simulador
         st.session_state['ranking'] = pd.concat([st.session_state['ranking'], pd.DataFrame([nuevo_rank])], ignore_index=True)
         st.success("Operación reportada al Ranking.")
