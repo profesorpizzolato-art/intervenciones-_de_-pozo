@@ -563,7 +563,44 @@ def vista_pesca_con_contingencias():
         else:
             pasos = ["Ahogo de pozo", "Constatar falta de peso con Martin Decker", "Sacar varillas en tiros dobles revisando torque.", "Bajar pescador tipo 'Overshot'."]
         for i, p in enumerate(pasos): st.checkbox(f"{i+1}. {p}", key=f"step_{i}")
+def monitor_barreras_seguridad():
+    st.subheader("🛡️ Monitor de Barreras de Seguridad")
+    
+    if st.session_state['pozo_seleccionado']:
+        datos = st.session_state['pozo_seleccionado']
+        tvd_ft = datos['Profundidad (m)'] * 3.28
+        presion_formacion = datos['Presión Reservorio (PSI)']
+        
+        # Simulamos una densidad de fluido actual (puedes conectarla a un slider)
+        densidad_actual = st.sidebar.slider("Densidad Fluido en Pozo (ppg)", 8.3, 12.0, 9.5)
+        ph_actual = 0.052 * densidad_actual * tvd_ft
+        
+        col_m1, col_m2, col_m3 = st.columns(3)
+        
+        # Margen de Sobre-balance (Trip Margin)
+        margen = ph_actual - presion_formacion
+        
+        with col_m1:
+            st.metric("P. Hidrostática", f"{ph_actual:.0f} PSI", delta=f"{margen:.0f} ppg")
+        
+        with col_m2:
+            st.metric("P. Formación", f"{presion_formacion} PSI")
+            
+        with col_m3:
+            if margen > 200:
+                st.success("ESTADO: SEGURO")
+            elif 0 < margen <= 200:
+                st.warning("ESTADO: MARGEN CRÍTICO")
+            else:
+                st.error("ESTADO: ¡SURGENCIA (KICK)!")
+                st.toast("🚨 ¡Cierre la BOP inmediatamente!", icon="🚨")
 
+        # Gráfico comparativo de presiones
+        df_press = pd.DataFrame({
+            "Categoría": ["Hidrostática", "Formación"],
+            "PSI": [ph_actual, presion_formacion]
+        })
+        st.bar_chart(df_press, x="Categoría", y="PSI", color=["#00457C"])
 
 # --- MÓDULO DE CIERRE: BITÁCORA Y REPORTE ---
 def vista_bitacora_y_reporte():
@@ -825,4 +862,6 @@ else:
          vista_formulas()
     elif pantalla == "well_control":
          vista_well_control()
-    
+    elif pantalla == "monitor_barreras_seguridad":
+         vista_monitor_barreras_seguridad()
+        
