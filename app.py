@@ -409,7 +409,7 @@ def vista_pesca_con_contingencias():
             pasos = ["Ahogo de pozo (API RP 59)", "Revisar tubing por posibles pinchaduras", "Bajar pescador tipo 'Socket'", "Sacar varillas con precaución por fragilidad."]
         else:
             pasos = ["Ahogo de pozo", "Constatar falta de peso con Martin Decker", "Sacar varillas en tiros dobles revisando torque.", "Bajar pescador tipo 'Overshot'."]
-        for i, p in enumerate(pasos): st.checkbox(f"{i+1}. {p}", key=f"step_{i}"
+        for i, p in enumerate(pasos): st.checkbox(f"{i+1}. {p}", key=f"step_{i}")
 def vista_pesca_con_contingencias():
     """Simulador de Pesca con botón de avance que dispara imprevistos operativos."""
     header_app()
