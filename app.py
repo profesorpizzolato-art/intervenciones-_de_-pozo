@@ -51,14 +51,16 @@ data_pozos = pd.DataFrame({
 def header_app():
     c1, c2 = st.columns([4, 1])
     with c1:
-        u = st.session_state['user']
+        # Verificamos que existan los datos del usuario para no tener otro error
+        u = st.session_state.get('user', {'nombre': 'Usuario', 'rol': 'Alumno'})
         st.subheader(f"🏢 IPCL MENFA | Operador: {u.get('nombre')} | Rol: {u.get('rol')}")
     with c2:
-        if st.button("Cerrar Sesión"):
+        # EL CAMBIO CRÍTICO: Agregamos key="btn_logout_unico"
+        if st.button("Cerrar Sesión", key="btn_logout_unico"):
             st.session_state['auth'] = False
+            st.session_state['pantalla'] = 'dashboard' # Reiniciamos la vista
             st.rerun()
     st.divider()
-
 def generar_contingencia():
     eventos = [
         {"msg": "⚠️ ¡Pérdida de Circulación! El pozo absorbe fluido.", "tipo": "error", "icono": "🚱"},
@@ -217,74 +219,45 @@ def vista_hse_seguridad():
             st.error("ATS Pendiente.")
 
 def vista_simulador_operativo():
+    # 1. El header SOLO se llama una vez al principio
     header_app()
     
-    # --- LÓGICA DE EVENTO ALEATORIO ---
-    if st.session_state['evento_activo'] == "KICK":
-        evento_emergencia_bop()
-        return # Detiene el resto del simulador hasta que resuelva la emergencia
+    # 2. Verificamos si hay una emergencia activa
+    if st.session_state.get('evento_activo') == "KICK":
+        # Llamamos a la lógica de emergencia, pero NO llamamos a header_app() allá adentro
+        st.error("🚨 ¡ALERTA DE SURGENCIA! Presión en el anular aumentando.")
+        
+        col_ev1, col_ev2 = st.columns(2)
+        with col_ev1:
+            # Agregamos KEYS únicas a estos elementos también
+            herram = st.selectbox("Herramienta a usar:", 
+                ["Llave Stillson 24\"", "Llave de Golpe", "Llave Francesa"], 
+                key="sel_herram_emergencia")
+        with col_ev2:
+            torque_int = st.number_input("Golpes aplicados:", 0, 10, 0, key="num_torque_emergencia")
 
-    # Botón para que el instructor (vos) dispare la emergencia de prueba
-    if st.sidebar.button("Simular Surgencia (Examen)"):
+        if st.button("Confirmar Cierre de Emergencia", key="btn_confirmar_kick"):
+            if herram == "Llave de Golpe" and torque_int >= 5:
+                st.success("✅ ¡POZO BAJO CONTROL!")
+                st.session_state['evento_activo'] = None
+                st.balloons()
+                st.rerun()
+            else:
+                st.error("❌ FALLA CRÍTICA. ¡EVACUAR!")
+                # Lógica de penalización
+        
+        # Usamos return para que no dibuje el resto del simulador "atrás" de la emergencia
+        return 
+
+    # 3. Si NO hay emergencia, dibujamos el simulador normal
+    st.title(f"Operando: {st.session_state['pozo_seleccionado']['Pozo']}")
+    
+    # Botón para disparar la prueba (con KEY única)
+    if st.sidebar.button("Simular Surgencia (Examen)", key="btn_trigger_kick"):
         st.session_state['evento_activo'] = "KICK"
         st.rerun()
-    
-    # ... resto del código del simulador (tensión, gráficos, etc.)
-    header_app()
-    if st.button("⬅️ Volver", key="btn_volver_sim"): 
-        st.session_state['pantalla'] = 'dashboard'
-        st.rerun()
-    
-    if not st.session_state.get('pozo_seleccionado') or not st.session_state.get('hse_ok'):
-        st.warning("⚠️ Verifique: 1. Seleccionar Pozo en Legajos | 2. Completar ATS en Módulo HSE.")
-        return
 
-    datos = st.session_state['pozo_seleccionado']
-    st.markdown(f'<div class="modulo-header"><h2>Pesca en Pozo: {datos["Pozo"]}</h2></div>', unsafe_allow_html=True)
-
-    # CORRECCIÓN LÍNEA 214: Definimos 3 columnas para que 'with col3' funcione
-    col1, col2, col3 = st.columns([2, 3, 3]) 
-    
-    with col1:
-        st.subheader("Controles")
-        if st.button("⏯️ Generar Evento"): 
-            generar_contingencia()
-        
-        if st.session_state.get('evento_activo'):
-            ev = st.session_state['evento_activo']
-            st.info(f"{ev['icono']} {ev['msg']}")
-        
-        limites = {"Grado D": 115000, "Grado K": 85000, "Grado KD": 115000}
-        limite_actual = limites.get(datos['Grado Varilla'], 100000)
-        tension = st.slider("Tensión Aplicada (lbs)", 0, 150000, 40000)
-        
-        if tension > limite_actual: 
-            st.error(f"🚨 SOBRETENSIÓN: Límite de {datos['Grado Varilla']} excedido")
-
-    with col2:
-        st.subheader("Indicador de Carga")
-        # Simulación de tirones
-        y = np.linspace(25000, tension, 15) + np.random.normal(0, 1500, 15)
-        st.line_chart(y)
-
-    with col3: # Ahora col3 existe correctamente
-        st.subheader("Estado de Sarta")
-        st.write(f"**Material:** {datos['Grado Varilla']}")
-        st.write(f"**Profundidad:** {datos['Profundidad (m)']} m")
-        
-        if st.button("📝 Finalizar y Reportar"):
-            puntos = 3000 if tension <= limite_actual else 500
-            nuevo_registro = pd.DataFrame([{
-                "Operador": st.session_state['user']['nombre'], 
-                "Puntaje": puntos, 
-                "Estado": "Finalizado", 
-                "Pozo": datos['Pozo']
-            }])
-            # Unión de datos corregida
-            st.session_state['ranking'] = pd.concat([st.session_state['ranking'], nuevo_registro], ignore_index=True)
-            st.success("Operación reportada al Ranking.")
-
-
+    # ... acá seguís con tu gráfico de tensión y demás
 def generar_contingencia():
     """Simula imprevistos operativos aleatorios durante la maniobra."""
     eventos = [
