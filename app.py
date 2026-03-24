@@ -235,8 +235,6 @@ def generar_contingencia():
     ]
     # Elegimos un evento al azar
     st.session_state['evento_activo'] = random.choice(eventos)
-
-
 def vista_punto_libre():
     header_app()
     if st.button("⬅️ Volver al Panel"): 
@@ -245,62 +243,82 @@ def vista_punto_libre():
         
     st.markdown('<div class="modulo-header"><h2>🧮 Ingeniería: Cálculo de Punto Libre (Stretch)</h2></div>', unsafe_allow_html=True)
     
-    st.info("""
-    **Procedimiento Operativo:**
-    1. Tensione la sarta hasta el peso neutral ($P_1$).
-    2. Realice una sobre-tracción ($P_2$) sin exceder el límite elástico.
-    3. Mida el estiramiento observado en pulgadas ($E$).
-    """)
-
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("📥 Datos de Entrada")
-        # Tabla de constantes API RP 11BR
+        st.subheader("📥 Datos de Entrada (API RP 11BR)")
+        # Tabla de constantes de varillas de acero
         tabla_constantes = {
-            "5/8\" (0.522)": 0.522,
-            "3/4\" (0.751)": 0.751,
-            "7/8\" (1.022)": 1.022,
-            "1\" (1.336)": 1.336,
-            "1 1/8\" (1.691)": 1.691
+            "5/8\" (Et: 0.522)": 0.522,
+            "3/4\" (Et: 0.751)": 0.751,
+            "7/8\" (Et: 1.022)": 1.022,
+            "1\" (Et: 1.336)": 1.336,
+            "1 1/8\" (Et: 1.691)": 1.691
         }
         
-        seleccion = st.selectbox("Diámetro de Varilla (Constante Et):", list(tabla_constantes.keys()))
+        seleccion = st.selectbox("Diámetro de Varilla:", list(tabla_constantes.keys()))
         et_val = tabla_constantes[seleccion]
         
-        p1 = st.number_input("Tensión Inicial $P_1$ (lbs)", value=15000, step=500)
-        p2 = st.number_input("Tensión Final $P_2$ (lbs)", value=30000, step=500)
-        estiramiento = st.number_input("Estiramiento Medido $E$ (pulgadas)", value=10.0, step=0.5)
+        p1 = st.number_input("Tensión Inicial $P_1$ (lbs)", value=10000, step=500)
+        p2 = st.number_input("Tensión Final $P_2$ (lbs)", value=25000, step=500)
+        estiramiento = st.number_input("Estiramiento Medido $E$ (pulgadas)", value=5.0, step=0.5)
 
     with col2:
         st.subheader("📊 Resultado del Análisis")
         delta_p = p2 - p1
         
         if delta_p > 0:
-            # Fórmula API: L = (E * Et * 1.000.000) / Delta P
-            # Resultado en pies, convertido a metros (* 0.3048)
+            # Cálculo: L (pies) = (E * Et * 1.000.000) / Delta P
             prof_pies = (estiramiento * et_val * 1000000) / delta_p
-            prof_metros = prof_pies * 0.3048
+            prof_metros = prof_pies * 0.3048 # Conversión a metros
             
-            st.metric("Profundidad del Atrapamiento", f"{prof_metros:.2f} metros")
+            st.metric("Punto de Atrapamiento", f"{prof_metros:.2f} metros")
             
-            # Comparación con el pozo activo si existe
             if st.session_state['pozo_seleccionado']:
                 prof_total = st.session_state['pozo_seleccionado']['Profundidad (m)']
-                st.write(f"**Profundidad Total del Pozo:** {prof_total} m")
-                
-                progreso = min(prof_metros / prof_total, 1.0)
-                st.progress(progreso)
-                
-                if prof_metros < prof_total * 0.9:
-                    st.warning(f"⚠️ El agarre está a {prof_total - prof_metros:.0f}m por ENCIMA de la bomba. Posible arenamiento o colapso.")
-                else:
-                    st.success("✅ El agarre parece estar en la zona de la bomba o anclaje.")
+                st.write(f"Profundidad Total: {prof_total} m")
+                st.progress(min(prof_metros / prof_total, 1.0))
         else:
-            st.error("La Tensión $P_2$ debe ser mayor a $P_1$ para calcular el estiramiento.")
+            st.error("P2 debe ser mayor que P1 para calcular el estiramiento.")
 
-    st.divider()
-    st.caption("Cálculo basado en constantes elásticas para acero (E = 30x10^6 psi) según norma API.")
+def vista_punto_libre():
+    header_app()
+    if st.button("⬅️ Volver al Panel"): 
+        st.session_state['pantalla'] = 'dashboard'; st.rerun()
+        
+    st.markdown('<div class="modulo-header"><h2>🧮 Ingeniería: Cálculo de Punto Libre</h2></div>', unsafe_allow_html=True)
+    
+    col1, col2, col_graf = st.columns([1.5, 1.5, 1])
+    
+    with col1:
+        st.subheader("📥 Inputs")
+        tabla_constantes = {"5/8\"": 0.522, "3/4\"": 0.751, "7/8\"": 1.022, "1\"": 1.336}
+        sel = st.selectbox("Varilla:", list(tabla_constantes.keys()))
+        p1 = st.number_input("P1 (lbs)", 15000)
+        p2 = st.number_input("P2 (lbs)", 30000)
+        est = st.number_input("Estiramiento (pulg)", 10.0)
+
+    with col2:
+        st.subheader("📊 Resultado")
+        dp = p2 - p1
+        if dp > 0:
+            prof_m = ((est * tabla_constantes[sel] * 1000000) / dp) * 0.3048
+            st.metric("Atrapamiento a:", f"{prof_m:.2f} m")
+            
+            if st.session_state['pozo_seleccionado']:
+                total_m = st.session_state['pozo_seleccionado']['Profundidad (m)']
+                # Dibujamos el gráfico de barras lateral
+                with col_graf:
+                    st.write("**Esquema de Pozo**")
+                    # Crear un dataframe para simular el pozo
+                    data_graf = pd.DataFrame({
+                        'Zona': ['Libre', 'Atrapado'],
+                        'Metros': [prof_m, max(0, total_m - prof_m)]
+                    })
+                    st.bar_chart(data_graf, y="Metros", color=["#2ecc71", "#e74c3c"])
+                    st.caption("Verde: Libre | Rojo: Agarre")
+        else:
+            st.error("P2 debe ser mayor a P1")
 def vista_ingenieria_punto_libre():
     """Módulo para calcular la profundidad del atrapamiento (Stretch Method)."""
     header_app() # Tu función de encabezado institucional
@@ -620,7 +638,36 @@ def vista_ranking():
     if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
     st.markdown('<div class="modulo-header"><h2>🏆 Ranking de Eficiencia MENFA</h2></div>', unsafe_allow_html=True)
     st.table(st.session_state['ranking'])
+def vista_manual():
+    header_app()
+    if st.button("⬅️ Volver al Panel"): 
+        st.session_state['pantalla'] = 'dashboard'; st.rerun()
+    
+    st.markdown('<div class="modulo-header"><h2>📖 Manual de Procedimientos - IPCL MENFA</h2></div>', unsafe_allow_html=True)
+    
+    tab1, tab2, tab3 = st.tabs(["⚙️ Especificaciones API", "📉 Gestión OPEX", "🛡️ Protocolos HSE"])
+    
+    with tab1:
+        st.subheader("Resistencia de Varillas (API 11B)")
+        st.table({
+            "Grado": ["Grado K", "Grado D", "Grado KD"],
+            "Material": ["Acero al Níquel", "Acero al Carbono", "Aleación Especial"],
+            "Límite Fluencia (psi)": ["85,000", "115,000", "115,000"],
+            "Uso Recomendado": ["Corrosión leve", "Cargas pesadas", "Corrosión + Carga"]
+        })
+        st.info("💡 Nunca tensione por encima del 80% del límite de fluencia para evitar deformación plástica.")
 
+    with tab2:
+        st.subheader("Optimización de Costos en Mendoza")
+        st.write("""
+        * **Frecuencia de Intervención:** El objetivo es estirar el ciclo de vida del pozo a +24 meses.
+        * **Costo de Equipo:** Cada hora de Pulling en Mendoza promedia los 450-600 USD.
+        * **Impacto de Rotura:** Una rotura por sobre-tensión implica pesca con 'Overshot', aumentando el OPEX en un 40%.
+        """)
+
+    with tab3:
+        st.subheader("Checklist de Seguridad Crítica")
+        st.warning("1. Verificar estanqueidad de la BOP.\n2. Asegurar zona de exclusión debajo del bloque viajero.\n3. Controlar vientos de la torre (API 4F).")
 # 3. LÓGICA PRINCIPAL DE NAVEGACIÓN (Al final de todo el archivo)
 if not st.session_state['auth']:
     vista_registro()
@@ -632,7 +679,11 @@ else:
         vista_legajo()
     elif pantalla == 'simulador':
         vista_simulador_operativo()
+    elif pantalla == "punto_libre":
+         vista_punto_libre()
     elif pantalla == 'hse':
         vista_hse_seguridad()
     elif pantalla == 'ranking':
         vista_ranking()
+    elif pantalla == "manual":
+         vista_manual()
