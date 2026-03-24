@@ -69,7 +69,30 @@ def generar_contingencia():
         {"msg": "✅ Operación normal. Siga tensionando.", "tipo": "success", "icono": "👍"}
     ]
     st.session_state['evento_activo'] = random.choice(eventos)
+import io
 
+def generar_excel_reporte(df):
+    output = io.BytesIO()
+    # Usamos xlsxwriter que ya declaraste en requirements.txt
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Ranking_MENFA')
+        
+        workbook  = writer.book
+        worksheet = writer.sheets['Ranking_MENFA']
+        
+        # Formato profesional para el encabezado
+        header_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#00457C',
+            'font_color': 'white',
+            'border': 1
+        })
+        
+        for col_num, value in enumerate(df.columns.values):
+            worksheet.write(0, col_num, value, header_format)
+            worksheet.set_column(col_num, col_num, 18)
+            
+    return output.getvalue()
 # --- PANTALLAS ---
 
 def vista_registro():
@@ -179,6 +202,22 @@ def vista_dashboard():
             st.caption("Distribución de alumnos según puntaje de corte (4000 pts).")
     else:
         st.info("Aún no hay datos de entrenamiento registrados.")
+        # Al final del dashboard, después de los gráficos
+    if not st.session_state['ranking'].empty:
+        st.divider()
+        st.subheader("📥 Exportar Datos Académicos")
+        
+        df_para_excel = st.session_state['ranking'].copy()
+        # Generamos el archivo
+        archivo_excel = generar_excel_reporte(df_para_excel)
+        
+        st.download_button(
+            label="📄 Descargar Reporte de Alumnos (Excel)",
+            data=archivo_excel,
+            file_name=f"Informe_MENFA_{pd.Timestamp.now().strftime('%Y%m%d')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="btn_descarga_excel_unico" # <--- CLAVE PARA EVITAR ERRORES
+        )
 def vista_legajo():
     header_app()
     if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
@@ -219,17 +258,24 @@ def vista_hse_seguridad():
             st.error("ATS Pendiente.")
 
 def vista_simulador_operativo():
-    # 1. El header SOLO se llama una vez al principio
+    # 1. El header siempre va primero
     header_app()
+    
+    # --- 🟢 SEGURO ANTICRASH (Fabricio, esto evita el error de la sesión vacía) ---
+    if st.session_state.get('pozo_seleccionado') is None:
+        st.warning("⚠️ No hay un pozo cargado en el sistema.")
+        st.info("Por favor, ve al módulo 'Gestión de Activos' (Legajos) y selecciona un pozo para operar.")
+        if st.button("Ir a Legajos", key="btn_go_legajos_fail"):
+            st.session_state['pantalla'] = 'legajo'
+            st.rerun()
+        return # Cortamos la ejecución aquí si no hay pozo
     
     # 2. Verificamos si hay una emergencia activa
     if st.session_state.get('evento_activo') == "KICK":
-        # Llamamos a la lógica de emergencia, pero NO llamamos a header_app() allá adentro
         st.error("🚨 ¡ALERTA DE SURGENCIA! Presión en el anular aumentando.")
         
         col_ev1, col_ev2 = st.columns(2)
         with col_ev1:
-            # Agregamos KEYS únicas a estos elementos también
             herram = st.selectbox("Herramienta a usar:", 
                 ["Llave Stillson 24\"", "Llave de Golpe", "Llave Francesa"], 
                 key="sel_herram_emergencia")
@@ -243,19 +289,32 @@ def vista_simulador_operativo():
                 st.balloons()
                 st.rerun()
             else:
-                st.error("❌ FALLA CRÍTICA. ¡EVACUAR!")
-                # Lógica de penalización
+                st.error("❌ FALLA CRÍTICA. ¡EVACUAR EQUIPO!")
+                # Penalización en el ranking
+                st.session_state['ranking'].loc[st.session_state['ranking']['Operador'] == st.session_state['user']['nombre'], 'Puntaje'] -= 500
         
-        # Usamos return para que no dibuje el resto del simulador "atrás" de la emergencia
-        return 
+        return # Evitamos que se dibuje el simulador debajo de la emergencia
 
-    # 3. Si NO hay emergencia, dibujamos el simulador normal
-    st.title(f"Operando: {st.session_state['pozo_seleccionado']['Pozo']}")
+    # 3. INTERFAZ NORMAL (Solo se llega aquí si hay pozo y NO hay emergencia)
+    pozo = st.session_state['pozo_seleccionado']
+    st.title(f"🏗️ Operando: {pozo['Pozo']}")
     
-    # Botón para disparar la prueba (con KEY única)
+    # Botón para el instructor (vos)
     if st.sidebar.button("Simular Surgencia (Examen)", key="btn_trigger_kick"):
         st.session_state['evento_activo'] = "KICK"
         st.rerun()
+
+    # --- SIMULACIÓN DE TENSIÓN ---
+    tension = st.slider("Tensión del Gancho (lbs)", 0, 120000, 35000, key="slider_tension")
+    
+    c_graph, c_info = st.columns([2, 1])
+    with c_graph:
+        y = np.random.normal(tension, 500, 20)
+        st.line_chart(y, width="stretch") # Recordá el width="stretch" que pedía Streamlit 2026
+    
+    with c_info:
+        st.metric("Profundidad de Pesca", f"{pozo['Profundidad (m)']} m")
+        st.metric("Punto Libre Estimado", f"{pozo['Profundidad (m)'] * 0.8:.0f} m")
 
     # ... acá seguís con tu gráfico de tensión y demás
 def generar_contingencia():
