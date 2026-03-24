@@ -383,3 +383,108 @@ def main():
 
 if __name__ == "__main__":
     main()
+import streamlit as st
+import pandas as pd
+import numpy as np
+
+# 1. CONFIGURACIÓN DE PÁGINA
+st.set_page_config(page_title="Simulador MENFA - Acceso Restringido", layout="wide")
+
+# 2. SISTEMA DE REGISTRO / LOGIN
+def login_modulo():
+    st.markdown("""
+        <style>
+        .main {
+            background-color: #f5f5f5;
+        }
+        .stButton>button {
+            width: 100%;
+            border-radius: 5px;
+            height: 3em;
+            background-color: #00457C;
+            color: white;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        # LOGO MENFA (Reemplaza la URL por la de tu logo oficial)
+        st.image("https://via.placeholder.com/600x200.png?text=IPCL+MENFA+-+MENDOZA", use_container_width=True)
+        
+        st.subheader("🔐 Registro de Instructor / Alumno")
+        with st.form("login_form"):
+            nombre = st.text_input("Nombre Completo")
+            legajo = st.text_input("Legajo o DNI")
+            rol = st.selectbox("Rol", ["Alumno", "Instructor", "Supervisor (Company)"])
+            
+            submit = st.form_submit_button("Ingresar al Simulador")
+            
+            if submit:
+                if nombre and legajo:
+                    st.session_state['autenticado'] = True
+                    st.session_state['usuario'] = nombre
+                    st.session_state['rol'] = rol
+                    st.rerun()
+                else:
+                    st.error("Por favor, complete todos los campos para el registro.")
+
+# 3. CONTENIDO DEL SIMULADOR (Solo si está autenticado)
+def mostrar_simulador():
+    # Encabezado con logo pequeño y usuario
+    c1, c2 = st.columns([3, 1])
+    with c1:
+        st.title(f"🏗️ Simulador de Intervención")
+        st.caption(f"Operando como: {st.session_state['usuario']} ({st.session_state['rol']})")
+    with c2:
+        if st.button("Cerrar Sesión"):
+            st.session_state['autenticado'] = False
+            st.rerun()
+
+    st.divider()
+
+    # --- DATOS DE REFERENCIA (API 11B) ---
+    datos_varillas = {
+        "Grado D (API 11B)": {"peso_lb_ft": 1.64, "resistencia": 115000},
+        "Grado KD (Aleación)": {"peso_lb_ft": 1.65, "resistencia": 115000}
+    }
+
+    # --- ESTRUCTURA DE PESTAÑAS ---
+    t1, t2 = st.tabs(["📊 Operación en Vivo", "🧮 Ingeniería de Ahogo"])
+
+    with t1:
+        col_a, col_b = st.columns([2, 1])
+        with col_a:
+            st.subheader("Procedimiento de Pesca")
+            tipo = st.radio("Seleccione el Caso:", ["Vástago Cortado", "Pesca de Varilla"])
+            
+            # Lógica simplificada de pasos basada en tus archivos
+            pasos = ["Charla de Seguridad", "Check-list API RP 4G", "Descomprimir Columnas"]
+            if tipo == "Pesca de Varilla":
+                pasos.append("Ahogar pozo (API RP 59)")
+            
+            for p in pasos:
+                st.checkbox(p)
+        
+        with col_b:
+            st.info("Monitor Martin Decker")
+            peso_real = st.slider("Carga en el Gancho (lbs)", 0, 60000, 45000)
+            if peso_real < 35000:
+                st.error("⚠️ PESCA DETECTADA")
+            else:
+                st.success("✅ Columna Íntegra")
+
+    with t2:
+        st.subheader("Cálculos de Control (Well Control)")
+        p_res = st.number_input("Presión de Reservorio (PSI)", value=1800)
+        st.write(f"Cálculo de densidad requerida según profundidad y presión...")
+
+# --- FLUJO PRINCIPAL ---
+if 'autenticado' not in st.session_state:
+    st.session_state['autenticado'] = False
+
+if not st.session_state['autenticado']:
+    login_modulo()
+else:
+    mostrar_simulador()
