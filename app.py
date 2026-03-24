@@ -178,3 +178,119 @@ def main():
 
 if __name__ == "__main__":
     main()
+import streamlit as st
+import pandas as pd
+
+# Configuración de la interfaz
+st.set_page_config(page_title="Simulador MENFA - Pulling & Pesca", layout="wide")
+
+def main():
+    st.title("🏗️ Sistema de Simulación de Intervención - MENFA")
+    st.markdown("---")
+
+    # --- PANEL LATERAL: DATOS DEL POZO ---
+    st.sidebar.header("📥 Parámetros del Pozo")
+    profundidad_m = st.sidebar.number_input("Profundidad (m)", value=1500, min_value=100)
+    presion_res_psi = st.sidebar.number_input("Presión de Reservorio (PSI)", value=1800)
+    
+    # Datos de cañería para cálculos de volumen
+    diametro_csg = st.sidebar.selectbox("Diámetro CSG (pulg)", [5.5, 7.0, 9.625])
+    
+    # --- PESTAÑAS PRINCIPALES ---
+    tab1, tab2, tab3 = st.tabs(["📋 Programas de Pozo", "🧮 Cálculos de Ingeniería", "🎓 Evaluación Técnica"])
+
+    # --- PESTAÑA 1: PROGRAMAS OPERATIVOS ---
+    with tab1:
+        tipo_caso = st.radio("Seleccione la maniobra:", ["Vástago Cortado", "Pesca de Varillas"])
+        
+        col_pro, col_mon = st.columns([2, 1])
+        
+        with col_pro:
+            st.subheader(f"Pasos Operativos - {tipo_caso}")
+            if tipo_caso == "Vástago Cortado":
+                pasos = [
+                    "Verificar presión entre columnas y descomprimir.",
+                    "Montar equipo y realizar Check-list (Jefe de Equipo + Company).",
+                    "Retirar cabeza de mula y desplazar a un costado.",
+                    "Bajar pescador y realizar captura de vástago.",
+                    "Montar BOP de varillas y verificar peso en Martin Decker.",
+                    "Clavar bomba y realizar prueba de hermeticidad."
+                ]
+            else:
+                pasos = [
+                    "Ahogar pozo (según cálculos en Tab 2).",
+                    "Retirar vástago y colocar v/b de maniobra.",
+                    "Constatar falta de peso (Pesca verificada).",
+                    "Extraer varillas en TIROS DOBLES revisando material.",
+                    "Bajar pescador y verificar si la pesca es positiva.",
+                    "Probar hermeticidad de la cañería de producción."
+                ]
+            
+            for p in pasos:
+                st.checkbox(p)
+
+        with col_mon:
+            st.info("⚡ **Indicador Martin Decker**")
+            # Simulación de pérdida de peso en pesca de varillas
+            peso_ref = 45000 # lbs (Referencia Clase 11)
+            peso_sim = st.slider("Lectura Real (lbs)", 0, 60000, 45000)
+            
+            if peso_sim < peso_ref * 0.85:
+                st.error("⚠️ ALERTA: FALTA DE PESO. Pesca Verificada.")
+            else:
+                st.success("✅ Peso de columna íntegro.")
+
+    # --- PESTAÑA 2: CÁLCULOS DE INGENIERÍA (AHOGO) ---
+    with tab2:
+        st.subheader("🧮 Ingeniería de Control de Pozos (Well Control)")
+        
+        c1, c2, c3 = st.columns(3)
+        
+        # 1. Cálculo de Densidad de Ahogo
+        with c1:
+            st.markdown("**1. Densidad de Fluido**")
+            margen = st.number_input("Margen de Seguridad (PSI)", value=200)
+            p_total = presion_res_psi + margen
+            prof_ft = profundidad_m * 3.2808
+            # Fórmula: Densidad = Presión / (Profundidad_ft * 0.052)
+            densidad_ppg = p_total / (prof_ft * 0.052)
+            st.metric("Densidad Requerida", f"{densidad_ppg:.2f} ppg")
+            st.caption("Fórmula: $P / (h \times 0.052)$")
+
+        # 2. Cálculo de Presión Hidrostática Actual
+        with c2:
+            st.markdown("**2. Hidrostática Actual**")
+            densidad_actual = st.number_input("Densidad actual del fluido (ppg)", value=8.33)
+            p_hidro = densidad_actual * 0.052 * prof_ft
+            st.metric("Presión Hidrostática", f"{p_hidro:.0f} PSI")
+            
+            balance = p_hidro - presion_res_psi
+            if balance < 0:
+                st.warning(f"Bajo balance: {abs(balance):.0f} PSI")
+            else:
+                st.success(f"Sobrebalance: {balance:.0f} PSI")
+
+        # 3. Cálculo de Volumen de Ahogo
+        with c3:
+            st.markdown("**3. Volumen del Pozo**")
+            # Factor de capacidad simplificado (bbl/m)
+            capacidad = (diametro_csg**2) / 314  # Galones/pie aprox convertido
+            vol_total = capacidad * profundidad_m
+            st.metric("Volumen Estimado", f"{vol_total:.1f} bbl")
+            st.caption("Basado en diámetro de CSG y profundidad.")
+
+    # --- PESTAÑA 3: EVALUACIÓN ---
+    with tab3:
+        st.subheader("📝 Validación de Conocimientos")
+        q = st.radio("¿Qué norma API regula la inspección y mantenimiento del mástil del equipo de Pulling?",
+                    ["API 11B", "API RP 4G", "API Spec 9A"])
+        
+        if st.button("Validar"):
+            if q == "API RP 4G":
+                st.balloons()
+                st.success("¡Correcto! Es la norma clave para el Check-list de seguridad.")
+            else:
+                st.error("Incorrecto. API RP 4G es para inspección de estructuras.")
+
+if __name__ == "__main__":
+    main()
