@@ -1,7 +1,23 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import random
+# --- 4. LÓGICA DE EVENTOS ALEATORIOS (CONTINGENCIAS) ---
+# Inicializar estado del evento si no existe
+if 'evento_activo' not in st.session_state: 
+    st.session_state['evento_activo'] = None
 
+def generar_contingencia():
+    """Simula imprevistos operativos aleatorios durante la maniobra."""
+    eventos = [
+        {"msg": "⚠️ ¡Pérdida de Circulación! El pozo está absorbiendo fluido de control.", "tipo": "error", "icono": "🚱"},
+        {"msg": "⚠️ ¡Fuga en Manguera de Inyección! Detenga la bomba de superficie inmediatamente.", "tipo": "warning", "icono": "🧯"},
+        {"msg": "⚠️ ¡Pescado con Arena! La tensión sube erráticamente, no hay despegue claro.", "tipo": "info", "icono": "⏳"},
+        {"msg": "🚨 ¡Tormenta Eléctrica detectada! Evalúe suspender maniobra con varilla en boca de pozo.", "tipo": "error", "icono": "⚡"},
+        {"msg": "✅ Operación normal. Siga tensionando con precaución.", "tipo": "success", "icono": "👍"}
+    ]
+    # Elegimos un evento al azar
+    st.session_state['evento_activo'] = random.choice(eventos)
 # 1. CONFIGURACIÓN E IDENTIDAD VISUAL DE IPCL MENFA
 st.set_page_config(page_title="IPCL MENFA - Gestión Integral de Intervenciones", layout="wide")
 
@@ -181,7 +197,24 @@ def vista_ingenieria():
     p_res = st.number_input("Presión (PSI)", 1500)
     densidad = (p_res + 200) / ((prof * 3.28) * 0.052)
     st.metric("Densidad de Ahogo Requerida", f"{densidad:.2f} ppg")
-
+def calculadora_punto_libre():
+    st.subheader("🧮 Estimación de Punto Libre (Stretch Method)")
+    st.write("Determine a qué profundidad está atrapada la sarta según su estiramiento.")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        pull_1 = st.number_input("Tensión Inicial (lbs)", value=20000)
+        pull_2 = st.number_input("Tensión Final (lbs)", value=40000)
+        estiramiento = st.number_input("Estiramiento observado (pulgadas)", value=15.0)
+    
+    with c2:
+        # Constante para varilla de 7/8" (ejemplo)
+        constante = 0.85 
+        diff_pull = pull_2 - pull_1
+        if diff_pull > 0:
+            prof_libre = (estiramiento * constante * 1000000) / diff_pull
+            st.metric("Profundidad del Atrapamiento", f"{prof_libre:.0f} metros")
+            st.info("Cálculo basado en constantes elásticas de acero API 11B.")
 # --- LÓGICA DE RUTEADOR ---
 if not st.session_state['auth']:
     vista_registro()
