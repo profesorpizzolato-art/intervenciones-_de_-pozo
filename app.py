@@ -588,43 +588,30 @@ def calcular_puntaje_final(novedad_msg, tension_max, limite, hse_ok, tiempo):
     
     # Eficiencia en tiempo (Supongamos meta de 10hs)
     if tiempo < 10: score += (10 - tiempo) * 100
-    
-    return score
+   return score      
+        # 1. Corrección del final de la función del simulador
+        st.session_state['ranking'] = pd.concat([st.session_state['ranking'], pd.DataFrame([nuevo_rank])], ignore_index=True)
+        st.success("Operación reportada al Ranking.")
 
+# 2. Asegúrate de definir las funciones que faltan para que no den NameError
 def vista_ranking():
     header_app()
-    if st.button("⬅️ Volver al Panel"): 
-        st.session_state['pantalla'] = 'dashboard'
-        st.rerun()
-        
-    st.markdown('<div class="modulo-header"><h2>🏆 Ranking de Operadores - IPCL MENFA</h2></div>', unsafe_allow_html=True)
-    
-    # Ordenar y mostrar tabla
-    df_sorted = st.session_state['ranking'].sort_values(by="Puntaje", ascending=False)
-    
-    # Mostrar el podio con columnas
-    c1, c2, c3 = st.columns(3)
-    if len(df_sorted) >= 1:
-        c1.metric("🥇 1er Puesto", df_sorted.iloc[0]['Operador'], f"{df_sorted.iloc[0]['Puntaje']} pts")
-    if len(df_sorted) >= 2:
-        c2.metric("🥈 2do Puesto", df_sorted.iloc[1]['Operador'], f"{df_sorted.iloc[1]['Puntaje']} pts")
-    if len(df_sorted) >= 3:
-        c3.metric("🥉 3er Puesto", df_sorted.iloc[2]['Operador'], f"{df_sorted.iloc[2]['Puntaje']} pts")
+    if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
+    st.markdown('<div class="modulo-header"><h2>🏆 Ranking de Eficiencia MENFA</h2></div>', unsafe_allow_html=True)
+    st.table(st.session_state['ranking'])
 
-    st.table(df_sorted)
-
-    if st.button("🗑️ Reiniciar Tabla (Solo Instructores)"):
-        st.session_state['ranking'] = pd.DataFrame(columns=["Operador", "Puntaje", "Estado", "Pozo"])
-        st.rerun()
-# Al final de app.py
-    elif p == 'ranking': vista_ranking()
-# --- LÓGICA DE NAVEGACIÓN (INDISPENSABLE AL FINAL) ---
-    if not st.session_state['auth']:
+# 3. LÓGICA PRINCIPAL DE NAVEGACIÓN (Al final de todo el archivo)
+if not st.session_state['auth']:
     vista_registro()
-   else:
-       p = st.session_state['pantalla']
-    if p == 'dashboard': vista_dashboard()
-    elif p == 'legajo': vista_legajo()
-    elif p == 'simulador': vista_simulador_operativo()
-    elif p == 'hse': vista_hse_seguridad()
-    # Agrega aquí las llamadas a las otras funciones si las creas
+else:
+    pantalla = st.session_state.get('pantalla', 'dashboard')
+    if pantalla == 'dashboard':
+        vista_dashboard()
+    elif pantalla == 'legajo':
+        vista_legajo()
+    elif pantalla == 'simulador':
+        vista_simulador_operativo()
+    elif pantalla == 'hse':
+        vista_hse_seguridad()
+    elif pantalla == 'ranking':
+        vista_ranking()
