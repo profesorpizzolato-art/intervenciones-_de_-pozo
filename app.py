@@ -526,3 +526,127 @@ else:
     if st.session_state['pantalla'] == 'dashboard': dashboard_profesional()
     elif st.session_state['pantalla'] == 'pesca': vista_pesca_avanzada()
     # Agregar las otras pantallas (manual, simulador, ingenieria) siguiendo el mismo patrón
+import streamlit as st
+import pandas as pd
+import numpy as np
+
+# 1. CONFIGURACIÓN E IDENTIDAD VISUAL
+st.set_page_config(page_title="IPCL MENFA - Sistema de Gestión de Integridad", layout="wide")
+
+st.markdown("""
+    <style>
+    .modulo-header {
+        background-color: #00457C; color: white; padding: 15px;
+        border-radius: 10px; margin-bottom: 20px; text-align: center;
+    }
+    .card-tecnica {
+        background-color: white; padding: 20px; border-radius: 10px;
+        border-left: 5px solid #00457C; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 2. BASE DE DATOS DE POZOS (Simulada para Mendoza)
+data_pozos = pd.DataFrame({
+    "Pozo": ["MENFA-101", "MENFA-102", "MENFA-105", "Puesto-Pozo-8"],
+    "Profundidad (m)": [1200, 1550, 1800, 1400],
+    "Grado Varilla": ["Grado D", "Grado K", "Grado KD", "Grado D"],
+    "Presión Reservorio (PSI)": [1500, 1850, 2100, 1600],
+    "Historial Falla": ["Corrosión", "Fatiga", "Fatiga", "Desgaste"]
+})
+
+# 3. GESTIÓN DE SESIÓN
+if 'auth' not in st.session_state: st.session_state['auth'] = False
+if 'pantalla' not in st.session_state: st.session_state['pantalla'] = 'dashboard'
+if 'pozo_seleccionado' not in st.session_state: st.session_state['pozo_seleccionado'] = None
+
+# --- MÓDULO 1: LEGAJO DE POZO (GESTIÓN DE DATOS) ---
+def vista_legajo():
+    st.markdown('<div class="modulo-header"><h2>📋 Legajo Técnico de Pozos</h2></div>', unsafe_allow_html=True)
+    if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
+    
+    st.write("Seleccione el pozo para obtener los parámetros de diseño antes de la intervención:")
+    pozo_sel = st.selectbox("Base de Datos Activos:", data_pozos["Pozo"])
+    detalles = data_pozos[data_pozos["Pozo"] == pozo_sel].iloc[0]
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Profundidad de Bomba", f"{detalles['Profundidad (m)']} m")
+        st.metric("Grado de Acero (API 11B)", detalles['Grado Varilla'])
+    with col2:
+        st.metric("Presión Estática", f"{detalles['Presión Reservorio (PSI)']} PSI")
+        st.warning(f"Último diagnóstico: {detalles['Historial Falla']}")
+    
+    if st.button("Cargar Datos al Simulador"):
+        st.session_state['pozo_seleccionado'] = detalles.to_dict()
+        st.success(f"Datos de {pozo_sel} transferidos al Módulo de Pesca.")
+
+# --- MÓDULO 2: PESCA Y SIMULACIÓN GRÁFICA ---
+def vista_pesca_pro():
+    st.markdown('<div class="modulo-header"><h2>🎣 Ingeniería de Pesca e Integridad</h2></div>', unsafe_allow_html=True)
+    if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
+
+    if not st.session_state['pozo_seleccionado']:
+        st.error("Primero debe seleccionar un pozo en el módulo de 'Legajo Técnico'.")
+        return
+
+    datos = st.session_state['pozo_seleccionado']
+    
+    t1, t2 = st.tabs(["🔍 Diagnóstico RCA", "⚙️ Maniobra de Pesca"])
+    
+    with t1:
+        st.subheader("Análisis de Causa Raíz (Root Cause Analysis)")
+        st.write(f"Muestra recuperada de pozo: **{datos['Pozo']}**")
+        st.image("https://via.placeholder.com/500x250.png?text=Falla+Real+de+Campo", use_container_width=True)
+        diag = st.radio("Diagnóstico visual:", ["Fatiga Mecánica", "Corrosión H2S/CO2", "Fricción Tubing"])
+        if st.button("Validar Diagnóstico"):
+            if diag == datos['Historial Falla']: st.success("¡Correcto! Coincide con el historial del activo.")
+            else: st.error("Error. El patrón de rotura no coincide.")
+
+    with t2:
+        st.subheader("Simulación de Tensión (Martin Decker)")
+        limites = {"Grado D": 115000, "Grado K": 85000, "Grado KD": 115000}
+        yield_p = limites[datos['Grado Varilla']]
+        
+        c_left, c_right = st.columns([1, 2])
+        with c_left:
+            st.write(f"**Límite Fluencia ({datos['Grado Varilla']}):** {yield_p} lbs")
+            tension = st.slider("Tensión Aplicada (lbs)", 0, int(yield_p * 1.3), 35000)
+            
+            if tension > yield_p: st.error("🚨 ¡ROTURA DE HERRAMIENTA!")
+            elif tension > yield_p * 0.85: st.warning("⚠️ LÍMITE ELÁSTICO ALCANZADO")
+        
+        with c_right:
+            noise = np.random.normal(0, 1200, 15)
+            y_data = np.linspace(25000, tension, 15) + noise
+            st.line_chart(pd.DataFrame({"Tensión": y_data}))
+
+# --- DASHBOARD PRINCIPAL ---
+def dashboard_menfa():
+    st.title("Plataforma Integral de Operaciones - MENFA")
+    st.divider()
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown('<div class="card-tecnica"><h3>📋 Gestión de Activos</h3><p>Legajos técnicos, presiones y diseño de sarta.</p></div>', unsafe_allow_html=True)
+        if st.button("Ver Legajos"): st.session_state['pantalla'] = 'legajo'; st.rerun()
+    with col2:
+        st.markdown('<div class="card-tecnica"><h3>🏗️ Simulador Pulling</h3><p>Worksteps Case 1 & 2. Programas de pozo operativos.</p></div>', unsafe_allow_html=True)
+        if st.button("Abrir Simulador"): st.session_state['pantalla'] = 'simulador'; st.rerun()
+    with col3:
+        st.markdown('<div class="card-tecnica"><h3>🎣 Módulo de Pesca</h3><p>Análisis de fallas (RCA) y simulación de tensiones.</p></div>', unsafe_allow_html=True)
+        if st.button("Iniciar Pesca"): st.session_state['pantalla'] = 'pesca'; st.rerun()
+
+# --- LÓGICA DE CONTROL ---
+if not st.session_state['auth']:
+    # Lógica de Login simple
+    st.title("Ingreso al Sistema")
+    n = st.text_input("Nombre")
+    if st.button("Entrar"):
+        st.session_state['auth'] = True
+        st.session_state['user'] = {"nombre": n, "dni": "---"}
+        st.rerun()
+else:
+    if st.session_state['pantalla'] == 'dashboard': dashboard_menfa()
+    elif st.session_state['pantalla'] == 'legajo': vista_legajo()
+    elif st.session_state['pantalla'] == 'pesca': vista_pesca_pro()
