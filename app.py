@@ -853,7 +853,68 @@ def monitor_barreras_seguridad():
             "PSI": [ph_actual, presion_formacion]
         })
         st.bar_chart(df_press, x="Categoría", y="PSI", color=["#00457C"])
+# --- MÓDULO 1: WELL CONTROL (CÁLCULOS DE PRESIÓN) ---
+def vista_well_control():
+    header_app()
+    st.markdown("## 🔬 Ingeniería de Well Control")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.info("📊 Datos de Cierre")
+        sidp = st.number_input("SIDP (Presión TP) [PSI]", 0, 5000, 500)
+        sicp = st.number_input("SICP (Presión TR) [PSI]", 0, 5000, 800)
+        tvd = st.number_input("Profundidad Vertical (TVD) [m]", 1, 6000, 2500)
+        dens_act = st.number_input("Densidad Actual [ppg]", 8.0, 18.0, 9.5)
+    with col2:
+        kmw = dens_act + (sidp / (0.052 * tvd * 3.281))
+        st.metric("Densidad de Ahogo (KMW)", f"{kmw:.2f} ppg")
+        pres_fondo = (0.052 * dens_act * tvd * 3.281) + sidp
+        st.metric("Presión de Fondo (BHP)", f"{pres_fondo:.0f} PSI")
+    if st.button("⬅️ Volver al Panel", key="back_wc"):
+        st.session_state['pantalla'] = 'dashboard'; st.rerun()
 
+# --- MÓDULO 2: MONITOR DE BARRERAS (SEGURIDAD OPERATIVA) ---
+def vista_monitor_barreras_seguridad():
+    header_app()
+    st.markdown("## 🛡️ Monitor de Barreras (BOP & HSE)")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("BOP Anular", "ABIERTA", delta="- Crítico", delta_color="inverse")
+    c2.metric("Pipe Rams", "LISTOS", delta="OK")
+    c3.metric("Acumulador", "3000 PSI", delta="Carga Full")
+    st.divider()
+    st.write("### Checklist de Seguridad en Locación")
+    st.checkbox("¿Válvula de Seguridad (TIW) disponible en piso?", value=False)
+    st.checkbox("¿Personal con EPP específico para maniobra?", value=True)
+    if st.button("⬅️ Volver al Panel", key="back_mbs"):
+        st.session_state['pantalla'] = 'dashboard'; st.rerun()
+
+# --- MÓDULO 3: PAÑOL DE HERRAMIENTAS ---
+def vista_herramientas():
+    header_app()
+    st.markdown("## 🔧 Pañol de Herramientas y Calibración")
+    tab1, tab2 = st.tabs(["Selección de Pesca", "Torques de Armado"])
+    with tab1:
+        casing = st.selectbox("Diámetro de Casing:", ["5 1/2\"", "7\"", "9 5/8\""])
+        st.info(f"Para Casing de {casing}, usar Overshot Series 150.")
+    with tab2:
+        st.table({"Varilla": ["5/8\"", "3/4\"", "7/8\""], "Torque Min (ft-lb)": [400, 600, 800]})
+    if st.button("⬅️ Volver al Panel", key="back_herram"):
+        st.session_state['pantalla'] = 'dashboard'; st.rerun()
+
+# --- MÓDULO 4: FÓRMULAS Y MANUAL ---
+def vista_formulas():
+    header_app()
+    st.markdown("## 📖 Manual de Fórmulas Rápidas")
+    st.latex(r"BHP = (Densidad \times 0.052 \times TVD_{ft}) + P_{sup}")
+    st.info("💡 Recordá: 1 metro = 3.281 pies para las fórmulas API.")
+    if st.button("⬅️ Volver al Panel", key="back_form"):
+        st.session_state['pantalla'] = 'dashboard'; st.rerun()
+
+def vista_manual():
+    header_app()
+    st.markdown("## 📘 Manual de Operaciones IPCL")
+    st.write("Contenido en desarrollo para la Cuenca Cuyana...")
+    if st.button("⬅️ Volver al Panel", key="back_man"):
+        st.session_state['pantalla'] = 'dashboard'; st.rerun()
 # --- MÓDULO DE CIERRE: BITÁCORA Y REPORTE ---
 def vista_bitacora_y_reporte():
     header_app()
@@ -987,78 +1048,128 @@ def vista_ranking():
     st.table(st.session_state['ranking'])
 def vista_diploma():
     header_app()
-    if st.button("⬅️ Volver"): 
+    if st.button("⬅️ Volver al Panel"): 
         st.session_state['pantalla'] = 'dashboard'; st.rerun()
-    
-    # Buscamos el mejor puntaje del usuario actual en el ranking
-    user_name = st.session_state['user']['nombre']
-    df_rank = st.session_state['ranking']
-    score_user = df_rank[df_rank['Operador'] == user_name]['Puntaje'].max() if user_name in df_rank['Operador'].values else 0
 
-    if score_user >= 4000:
+    st.markdown('<div class="modulo-header"><h2>🎓 Centro de Certificación MENFA</h2></div>', unsafe_allow_html=True)
+
+    # Verificamos el puntaje del usuario actual en el ranking
+    user_name = st.session_state['user']['nombre']
+    ranking_df = st.session_state['ranking']
+    puntaje_actual = ranking_df[ranking_df['Operador'] == user_name]['Puntaje'].values[0]
+
+    if puntaje_actual >= 5000:
         st.balloons()
+        
+        # --- DISEÑO DEL DIPLOMA (HTML/CSS) ---
         st.markdown(f"""
-        <div style="border: 10px solid #00457C; padding: 50px; text-align: center; background-color: white;">
-            <h1 style="color: #00457C;">CERTIFICADO DE EXCELENCIA</h1>
-            <p style="font-size: 20px;">IPCL MENFA - Mendoza, Argentina</p>
-            <hr>
-            <p style="font-size: 25px;">Se certifica que:</p>
-            <h2 style="text-decoration: underline;">{user_name.upper()}</h2>
-            <p style="font-size: 20px;">Ha completado exitosamente el entrenamiento de <br><b>SIMULACIÓN DE PESCA Y WELL CONTROL</b></p>
-            <p style="font-size: 22px; color: #2ecc71;"><b>Puntaje Obtenido: {score_user} pts</b></p>
-            <br><br>
-            <div style="display: flex; justify-content: space-around;">
-                <div>_______________________<br>Instructor Fabricio</div>
-                <div>_______________________<br>Sello IPCL MENFA</div>
+        <div style="border: 10px double #00457C; padding: 40px; background-color: #fffcf2; text-align: center; color: #333; font-family: 'Georgia', serif;">
+            <h1 style="color: #00457C; margin-bottom: 0;">IPCL MENFA</h1>
+            <p style="font-style: italic; font-size: 1.2em; margin-top: 5px;">Instituto Privado de Capacitación Laboral - Mendoza</p>
+            <hr style="width: 60%; border: 1px solid #00457C;">
+            <br>
+            <h2 style="text-transform: uppercase; letter-spacing: 2px;">Certificado de Competencia</h2>
+            <p style="font-size: 1.5em;">Se otorga el presente a:</p>
+            <h1 style="font-size: 3em; color: #1a1a1a;">{user_name.upper()}</h1>
+            <p style="font-size: 1.2em;">Por haber completado con éxito el entrenamiento intensivo en:</p>
+            <h3 style="color: #00457C;">SIMULACIÓN DE INTERVENCIONES, PESCA Y CONTROL DE POZO (WELL CONTROL)</h3>
+            <br>
+            <div style="display: flex; justify-content: space-around; margin-top: 30px;">
+                <div>
+                    <hr style="width: 150px; border: 0.5px solid black;">
+                    <p>Firma Instructor</p>
+                </div>
+                <div>
+                    <p style="font-weight: bold; border: 2px solid #00457C; padding: 10px; display: inline-block;">SELLO MENFA</p>
+                </div>
             </div>
+            <p style="margin-top: 40px; font-size: 0.9em; color: #666;">Fecha de Emisión: {pd.Timestamp.now().strftime('%d/%m/%Y')}</p>
         </div>
         """, unsafe_allow_html=True)
-        st.button("🖨️ Imprimir Pantalla (Ctrl+P)")
+        
+        st.success("✅ ¡Felicidades! Has alcanzado el nivel de Operador Certificado.")
+        
+        # Opción de impresión simple (usando el comando de impresión del navegador)
+        st.button("🖨️ Imprimir Certificado", on_click=lambda: st.write('<script>window.print();</script>', unsafe_allow_html=True))
+        
     else:
-        st.error(f"Lo siento, {user_name}. Necesitas al menos 4000 puntos para obtener el diploma. Tu puntaje actual es {score_user}.") 
-def vista_formulas():
+        st.warning("⚠️ Aún no calificas para la certificación.")
+        st.info(f"Tu puntaje actual es **{puntaje_actual}**. Necesitas al menos **5000 puntos** para obtener tu diploma. ¡Seguí practicando en el simulador!")
+        st.progress(min(100, int((puntaje_actual/5000)*100)))
+def vista_legajo():
     header_app()
     if st.button("⬅️ Volver al Panel"): 
         st.session_state['pantalla'] = 'dashboard'; st.rerun()
-    
-    st.markdown('<div class="modulo-header"><h2>🧮 Prontuario de Fórmulas Técnicas - IPCL MENFA</h2></div>', unsafe_allow_html=True)
-    
-    st.info("💡 Estas fórmulas rigen el comportamiento del simulador y los cálculos de intervención en la Cuenca Cuyana.")
 
-    col1, col2 = st.columns(2)
+    st.markdown('<div class="modulo-header"><h2>📋 Gestión de Activos: Legajo Técnico</h2></div>', unsafe_allow_html=True)
 
-    with col1:
-        st.subheader("1. Control de Pozos (Well Control)")
-        st.write("Para calcular la densidad de ahogo (Kill Mud Weight):")
-        st.latex(r"D_{ahogo} [ppg] = \frac{P_{res} [psi]}{0.052 \times TVD [ft]}")
+    # --- LISTADO DE POZOS (BASE DE DATOS CUENCA CUYANA) ---
+    pozos_db = [
+        {"Pozo": "MENFA-XP-101", "Yacimiento": "Barrancas", "Profundidad (m)": 2450, "Casing": "5 1/2\"", "Tubing": "2 7/8\"", "Presión Reservorio (PSI)": 1800, "Estado": "Surgente con Gas"},
+        {"Pozo": "MENFA-ST-205", "Yacimiento": "Vizcacheras", "Profundidad (m)": 1850, "Casing": "7\"", "Tubing": "2 7/8\"", "Presión Reservorio (PSI)": 1200, "Estado": "Bombeo Mecánico"},
+        {"Pozo": "MENFA-PL-303", "Yacimiento": "La Ventana", "Profundidad (m)": 3100, "Casing": "5 1/2\"", "Tubing": "3 1/2\"", "Presión Reservorio (PSI)": 2500, "Estado": "Pesca de Varillas"}
+    ]
+
+    col_L, col_R = st.columns([1, 2])
+
+    with col_L:
+        st.subheader("Seleccionar Pozo")
+        nombres_pozos = [p['Pozo'] for p in pozos_db]
+        seleccion = st.selectbox("Buscar en archivo:", nombres_pozos)
         
-        st.write("Presión Hidrostática ($P_h$):")
-        st.latex(r"P_h [psi] = 0.052 \times \rho [ppg] \times TVD [ft]")
+        # Guardamos el pozo elegido
+        pozo_elegido = next(item for item in pozos_db if item["Pozo"] == seleccion)
+        st.session_state['pozo_seleccionado'] = pozo_elegido
         
-        st.subheader("2. Mecánica de Varillas (API 11B)")
-        st.write("Carga Máxima de Operación Sugerida ($T_{max}$):")
-        st.latex(r"T_{max} [lbs] = S_f \times 0.90 \times \text{Límite de Fluencia}")
-        st.caption("Donde $S_f$ es el factor de servicio (0.5 a 1.0 según corrosión).")
+        st.success(f"📂 Archivo de {seleccion} abierto.")
+        if st.button("🚀 ENVIAR AL SIMULADOR"):
+            st.session_state['pantalla'] = 'simulador'
+            st.rerun()
 
-    with col2:
-        st.subheader("3. Estiramiento y Punto Libre")
-        st.write("Profundidad de Atrapamiento ($L$):")
-        st.latex(r"L [m] = \left( \frac{E [in] \times Et \times 10^6}{\Delta P [lbs]} \right) \times 0.3048")
+    with col_R:
+        # --- FICHA TÉCNICA VISUAL ---
+        st.markdown(f"""
+        <div style="background-color: #f4f4f4; padding: 20px; border: 2px solid #00457C; border-radius: 10px; color: #333;">
+            <h3 style="text-align: center; color: #00457C;">📑 FICHA DE INTERVENCIÓN - IPCL MENFA</h3>
+            <hr style="border-top: 2px solid #00457C;">
+            <table style="width:100%; font-family: Arial;">
+                <tr><td><b>POZO:</b></td><td>{pozo_elegido['Pozo']}</td><td><b>YACIMIENTO:</b></td><td>{pozo_elegido['Yacimiento']}</td></tr>
+                <tr><td><b>PROFUNDIDAD:</b></td><td>{pozo_elegido['Profundidad (m)']} m</td><td><b>ESTADO:</b></td><td>{pozo_elegido['Estado']}</td></tr>
+                <tr><td><b>CASING:</b></td><td>{pozo_elegido['Casing']}</td><td><b>TUBING:</b></td><td>{pozo_elegido['Tubing']}</td></tr>
+                <tr><td><b>PRESION:</b></td><td>{pozo_elegido['Presión Reservorio (PSI)']} PSI</td><td><b>OP. SUGERIDA:</b></td><td>Pulling / Pesca</td></tr>
+            </table>
+        </div>
+        """, unsafe_allow_html=True)
         
-        st.write("Constante Elástica ($Et$) de la varilla:")
-        st.latex(r"Et = \frac{1}{A [in^2] \times E_{acero}}")
-        st.caption("Siendo $E_{acero} \approx 30 \times 10^6 psi$.")
+        # Esquema del pozo (Imagen representativa)
+        st.write("**Esquema de Completación Estimado:**")
+        st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Oil_well_scheme.svg/400px-Oil_well_scheme.svg.png", width=250)  
+        # --- GALERÍA DE DIAGNÓSTICO (NUEVA SECCIÓN) ---
+        st.divider()
+        st.subheader("📸 Galería de Fallas y Pesca (Diagnóstico)")
+        
+        col_img1, col_img2, col_img3 = st.columns(3)
+        
+        with col_img1:
+            st.image("https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&h=200", 
+                     caption="Varilla con Fatiga (Corte)", use_container_width=True)
+            st.info("🔎 **Signo:** Corte plano. Sugiere fatiga por corrosión.")
 
-    st.divider()
-    
-    st.subheader("4. Capacidades Volumétricas")
-    cv_col1, cv_col2 = st.columns(2)
-    with cv_col1:
-        st.write("Volumen en Tubing ($V_t$):")
-        st.latex(r"V_t [bbl] = ID^2 [in] \times 0.0009714 \times L [ft]")
-    with cv_col2:
-        st.write("Volumen Anular ($V_a$):")
-        st.latex(r"V_a [bbl] = (ID_{csg}^2 - OD_{tbg}^2) \times 0.0009714 \times L [ft]")        
+        with col_img2:
+            # Representación de un pescado "viboreado" o deformado
+            st.image("https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=300&h=200", 
+                     caption="Boca de Pescante Dañada", use_container_width=True)
+            st.warning("⚠️ **Alerta:** Indica que se intentó pescar con torque excesivo.")
+
+        with col_img3:
+            st.image("https://images.unsplash.com/photo-1535813543269-7328ec13955e?auto=format&fit=crop&w=300&h=200", 
+                     caption="Muestra de Incrustaciones (Scale)", use_container_width=True)
+            st.error("🚨 **Problema:** Obstrucción total del Tubing por carbonatos.")
+
+        st.markdown("""
+            > **Instrucción para el Alumno:** Observa las imágenes del historial del pozo. 
+            > Si el pozo tiene historial de corrosión, asegúrate de elegir un **Overshot** con grapas nuevas en el simulador.
+        """)
 def vista_manual():
     header_app()
     if st.button("⬅️ Volver al Panel"): 
@@ -1111,27 +1222,24 @@ if not st.session_state['auth']:
     vista_registro()
 else:
     pantalla = st.session_state.get('pantalla', 'dashboard')
+    
     if pantalla == 'dashboard':
         vista_dashboard()
     elif pantalla == 'legajo':
         vista_legajo()
     elif pantalla == 'simulador':
         vista_simulador_operativo()
-    elif pantalla == "punto_libre":
-         vista_punto_libre()
-    elif pantalla == 'hse':
-        vista_hse_seguridad()
+    elif pantalla == 'well_control':
+        vista_well_control()
+    elif pantalla == 'monitor_barreras_seguridad':
+        vista_monitor_barreras_seguridad()
+    elif pantalla == 'herramientas':
+        vista_herramientas()
+    elif pantalla == 'formulas':
+        vista_formulas()
+    elif pantalla == 'manual':
+        vista_manual()
+    elif pantalla == 'diploma':
+        vista_diploma()
     elif pantalla == 'ranking':
         vista_ranking()
-    elif pantalla == "manual":
-         vista_manual()
-    elif pantalla == "diploma":
-         vista_diploma()
-    elif pantalla == "formulas":
-         vista_formulas()
-    elif pantalla == "well_control":
-         vista_well_control()
-    elif pantalla == "monitor_barreras_seguridad":
-         vista_monitor_barreras_seguridad()
-    elif pantalla == "herramientas":
-         vista_herramientas()     
