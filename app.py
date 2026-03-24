@@ -592,9 +592,7 @@ def calcular_puntaje_final(novedad_msg, tension_max, limite, hse_ok, tiempo):
         # 1. Corrección del final de la función del simulador
     st.session_state['ranking'] = pd.concat([st.session_state['ranking'], pd.DataFrame([nuevo_rank])], ignore_index=True)
     st.success("Operación reportada al Ranking.")
-    if st.button("Finalizar"):
-    puntos = 3000
-     st.session_state['ranking'] = pd.concat(...) # <-- ERROR: ese espacio extra
+
 
 # 2. Asegúrate de definir las funciones que faltan para que no den NameError
 def vista_ranking():
