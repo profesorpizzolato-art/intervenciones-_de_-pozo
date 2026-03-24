@@ -280,7 +280,6 @@ def vista_punto_libre():
                 st.progress(min(prof_metros / prof_total, 1.0))
         else:
             st.error("P2 debe ser mayor que P1 para calcular el estiramiento.")
-
 def vista_punto_libre():
     header_app()
     c1, c2 = st.columns([4, 1])
@@ -293,38 +292,42 @@ def vista_punto_libre():
         
     st.markdown('<div class="modulo-header"><h2>🧮 Ingeniería: Cálculo de Punto Libre</h2></div>', unsafe_allow_html=True)
     
-    col_in, col_out, col_viz = st.columns([1.5, 1.5, 1])
+    col_in, col_out, col_viz = st.columns([1.5, 1.2, 1.3])
     
     with col_in:
-        st.subheader("📥 Parámetros de Campo")
+        st.subheader("📥 Parámetros")
         tabla_constantes = {"5/8\"": 0.522, "3/4\"": 0.751, "7/8\"": 1.022, "1\"": 1.336}
-        sel = st.selectbox("Diámetro de Varilla (API):", list(tabla_constantes.keys()))
-        p1 = st.number_input("Tensión Inicial P1 (lbs)", 15000, help="Peso neutral de la sarta")
-        p2 = st.number_input("Tensión Final P2 (lbs)", 35000, help="Tracción aplicada para estiramiento")
-        est = st.number_input("Estiramiento E (pulgadas)", 12.0)
+        sel = st.selectbox("Diámetro de Varilla:", list(tabla_constantes.keys()))
+        p1 = st.number_input("P1 (lbs)", 15000)
+        p2 = st.number_input("P2 (lbs)", 35000)
+        est = st.number_input("Estiramiento (pulg)", 12.0)
 
     with col_out:
-        st.subheader("📊 Resultado Técnico")
+        st.subheader("📊 Resultado")
         dp = p2 - p1
         if dp > 0:
-            # Cálculo de profundidad en metros
             prof_m = ((est * tabla_constantes[sel] * 1000000) / dp) * 0.3048
-            st.metric("Punto de Atrapamiento", f"{prof_m:.2f} m")
+            st.metric("Atrapamiento a:", f"{prof_m:.2f} m")
             
             if st.session_state['pozo_seleccionado']:
                 total_m = st.session_state['pozo_seleccionado']['Profundidad (m)']
-                st.write(f"Prof. Total Pozo: {total_m} m")
+                st.write(f"Prof. Total: {total_m} m")
                 
                 with col_viz:
-                    st.write("**Visualización**")
-                    # Gráfico de barras para representar el pozo
+                    st.write("**Esquema del Pozo**")
+                    # SOLUCIÓN AL ERROR: Creamos dos columnas separadas para que acepte dos colores
+                    # O usamos una estructura que Streamlit entienda por color
                     graf_data = pd.DataFrame({
-                        'Tramo': ['Libre (m)', 'Atrapado (m)'],
-                        'Longitud': [prof_m, max(0, total_m - prof_m)]
-                    })
-                    st.bar_chart(graf_data, x="Tramo", y="Longitud", color=["#2ecc71", "#e74c3c"])
+                        'Tramo': ['Pozo'],
+                        'Libre (m)': [prof_m],
+                        'Atrapado (m)': [max(0, total_m - prof_m)]
+                    }).set_index('Tramo')
+                    
+                    # Al tener dos columnas (Libre y Atrapado), ahora sí acepta dos colores
+                    st.bar_chart(graf_data, color=["#2ecc71", "#e74c3c"])
+                    st.caption("🟢 Libre | 🔴 Atrapado")
         else:
-            st.error("Error: P2 debe ser mayor que P1 para generar estiramiento.")
+            st.error("P2 debe ser mayor que P1")
             
 def vista_ingenieria_punto_libre():
     """Módulo para calcular la profundidad del atrapamiento (Stretch Method)."""
@@ -370,6 +373,54 @@ def vista_ingenieria_punto_libre():
                     st.success("El agarre es cerca de la bomba. Proceda con maniobra de desclave.")
         else:
             st.warning("Ingrese una tensión F2 mayor que F1.")
+def vista_well_control():
+    header_app()
+    if st.button("⬅️ Volver al Panel"): 
+        st.session_state['pantalla'] = 'dashboard'; st.rerun()
+    
+    st.markdown('<div class="modulo-header"><h2>🛡️ Control de Pozo (Well Control)</h2></div>', unsafe_allow_html=True)
+    
+    st.info("🎯 Objetivo: Mantener el control primario del pozo mediante la columna hidrostática.")
+
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("🛠️ Calculadora de Hidrostática")
+        # Inputs técnicos
+        tvd_m = st.number_input("Profundidad Vertical Verdadera (m):", value=1500, step=100)
+        densidad_ppg = st.number_input("Densidad del Fluido (ppg):", value=9.5, step=0.1)
+        
+        # Conversión interna para la fórmula API (Metros a Pies)
+        tvd_ft = tvd_m * 3.28084
+        presion_hidro = 0.052 * densidad_ppg * tvd_ft
+        
+        st.metric("Presión Hidrostática (Ph)", f"{presion_hidro:.0f} PSI")
+        st.caption("Fórmula: $P_h = 0.052 \times \rho \times TVD$")
+
+    with col2:
+        st.subheader("🚨 Cálculo de Ahogo (Kill Sheet)")
+        presion_poro = st.number_input("Presión de Formación / Reservorio (PSI):", value=2000)
+        
+        # Cálculo de Densidad de Ahogo
+        if tvd_ft > 0:
+            kill_weight = presion_poro / (0.052 * tvd_ft)
+            st.metric("Densidad de Ahogo Requerida", f"{kill_weight:.2f} ppg")
+            
+            # Alerta de seguridad
+            if kill_weight > densidad_ppg:
+                st.error(f"⚠️ ¡POZO BAJO PRESIÓN! Se requiere densificar de {densidad_ppg} a {kill_weight:.2f} ppg.")
+            else:
+                st.success("✅ Margen de seguridad correcto (Sobre-balanceado).")
+
+    st.divider()
+    
+    # Visualización de presiones
+    st.subheader("📈 Balance de Presiones en Fondo")
+    chart_data = pd.DataFrame({
+        'Tipo': ['Hidrostática', 'Formación'],
+        'Presión (PSI)': [presion_hidro, presion_poro]
+    })
+    st.bar_chart(chart_data, x='Tipo', y='Presión (PSI)', color=["#3498db"])            
 def vista_pesca_con_contingencias():
     """Simulador de Pesca con botón de avance que dispara imprevistos operativos."""
     header_app()
@@ -772,5 +823,6 @@ else:
          vista_diploma()
     elif pantalla == "formulas":
          vista_formulas()
-
+    elif pantalla == "well_control":
+         vista_well_control()
     
