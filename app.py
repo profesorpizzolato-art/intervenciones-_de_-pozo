@@ -2,7 +2,60 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import time
-
+def vista_diploma():
+    header_app()
+    if st.button("⬅️ Volver al Panel"): 
+        st.session_state['pantalla'] = 'dashboard'
+        st.rerun()
+    
+    # Verificación de puntaje para otorgar el certificado
+    user_name = st.session_state['user']['nombre']
+    user_data = st.session_state['ranking'][st.session_state['ranking']['Operador'] == user_name]
+    puntaje = user_data['Puntaje'].max() if not user_data.empty else 0
+    
+    if puntaje >= 1500:
+        st.balloons()
+        # Estructura del Diploma con Estilo Institucional
+        st.markdown(f"""
+        <div style="
+            border: 15px double #00457C; 
+            padding: 50px; 
+            text-align: center; 
+            background-color: white; 
+            color: #333;
+            font-family: 'Georgia', serif;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        ">
+            <h1 style="color: #00457C; margin-bottom: 5px;">IPCL MENFA</h1>
+            <p style="font-style: italic; font-size: 1.2em;">Instituto Privado de Capacitación Laboral - Mendoza</p>
+            <hr style="width: 50%; border: 1px solid #00457C;">
+            <br>
+            <p style="font-size: 1.5em;">Certifica que el Operador:</p>
+            <h2 style="font-size: 2.5em; text-transform: uppercase; text-decoration: underline;">{user_name}</h2>
+            <br>
+            <p style="font-size: 1.2em; line-height: 1.6;">
+                Ha cumplido satisfactoriamente con las exigencias teóricas y prácticas del<br>
+                <b>Simulador de Perforación y Well Control (Nivel I)</b>,<br>
+                demostrando competencia en maniobras de cierre de pozo y cálculos de ingeniería.
+            </p>
+            <br><br>
+            <div style="display: flex; justify-content: space-around; margin-top: 50px;">
+                <div style="border-top: 2px solid #333; width: 200px; padding-top: 10px;">
+                    <p><b>Instructor Fabricio</b><br>Especialista Técnico</p>
+                </div>
+                <div style="border-top: 2px solid #333; width: 200px; padding-top: 10px;">
+                    <p><b>Dirección IPCL</b><br>MENFA Mendoza</p>
+                </div>
+            </div>
+            <br>
+            <p style="font-size: 0.8em; color: gray;">Emitido el {time.strftime("%d/%m/%Y")} | Código de Validación: MENFA-{random.randint(1000,9999)}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Opción para que el alumno guarde su mérito
+        st.info("💡 Podés imprimir esta pantalla o guardarla como PDF para tu legajo personal.")
+    else:
+        st.warning(f"⚠️ El certificado aún no está disponible. Se requieren 1500 puntos (actualmente tenés {puntaje}). ¡Seguí operando en el simulador!")
 # 1. CONFIGURACIÓN E IDENTIDAD VISUAL - IPCL MENFA
 st.set_page_config(page_title="IPCL MENFA - Simulador Integral", layout="wide")
 
