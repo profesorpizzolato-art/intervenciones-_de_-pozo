@@ -111,7 +111,16 @@ def vista_dashboard():
         if st.button("📖 Manual de Gestión (OPEX)"): st.session_state['pantalla'] = 'manual'; st.rerun()
     with cc:
         if st.button("🛡️ HSE y Seguridad"): st.session_state['pantalla'] = 'hse'; st.rerun()
-
+    
+    with cd: # O la columna que tengas libre
+        if st.button("🔧 Herramientas / Torque"): st.session_state['pantalla'] = 'herramientas'; st.rerun()        
+    with col_viz:
+        st.write("**Esquema del Pozo**") graf_data = pd.DataFrame({'Tramo': ['Pozo'],'Libre (m)': [prof_m],'Atrapado (m)': [max(0, total_m - prof_m)]}).set_index('Tramo')
+        st.bar_chart(graf_data, color=["#2ecc71", "#e74c3c"], width="stretch")
+    with col_graph:
+        y = np.linspace(25000, tension, 15) + np.random.normal(0, 1000, 15)
+        # Actualizado para evitar el warning
+        st.line_chart(y, width="stretch")
 def vista_legajo():
     header_app()
     if st.button("⬅️ Volver"): st.session_state['pantalla'] = 'dashboard'; st.rerun()
@@ -563,6 +572,51 @@ def vista_pesca_con_contingencias():
         else:
             pasos = ["Ahogo de pozo", "Constatar falta de peso con Martin Decker", "Sacar varillas en tiros dobles revisando torque.", "Bajar pescador tipo 'Overshot'."]
         for i, p in enumerate(pasos): st.checkbox(f"{i+1}. {p}", key=f"step_{i}")
+def vista_herramientas():
+    header_app()
+    if st.button("⬅️ Volver"): 
+        st.session_state['pantalla'] = 'dashboard'; st.rerun()
+    
+    st.markdown('<div class="modulo-header"><h2>🛠️ Herramientas de Boca de Pozo y Torque</h2></div>', unsafe_allow_html=True)
+    
+    t1, t2, t3 = st.tabs(["🔧 Llaves y Calibres", "⚖️ Tablas de Torque", "📏 Simulador Calibrado"])
+    
+    with t1:
+        c1, c2 = st.columns(2)
+        with c1:
+            st.subheader("Llaves Manuales vs Hidráulicas")
+            st.write("""
+            * **Llaves Manuales:** Uso para aproximación y desenoque inicial. Requieren estribo de seguridad.
+            * **Llaves Hidráulicas (Power Tongs):** Garantizan el torque uniforme según API. Crucial para evitar 'saltos' de rosca.
+            """)
+        with c2:
+            st.subheader("Chapas Calibre (No-Go Gauges)")
+            st.info("💡 Antes de bajar cualquier herramienta, debe pasar por la chapa calibre para asegurar el OD (diámetro externo) correcto.")
+
+    with t2:
+        st.subheader("Torques Admisibles para Varillas de Acero")
+        # Datos basados en recomendaciones de fabricantes para la Cuenca Cuyana
+        df_torque = pd.DataFrame({
+            "Diámetro (in)": ["5/8\"", "3/4\"", "7/8\"", "1\"", "1 1/8\""],
+            "Torque Mín (ft-lbs)": [200, 350, 500, 800, 1100],
+            "Torque Máx (ft-lbs)": [350, 600, 900, 1400, 1900]
+        })
+        st.table(df_torque)
+        st.warning("⚠️ El exceso de torque estira el pin de la varilla y causa fallas por fatiga prematura.")
+
+    with t3:
+        st.subheader("Simulador de Calibración")
+        st.write("Verificación de diámetro de varilla con Chapa Calibre:")
+        diam_nominal = st.selectbox("Seleccione Diámetro Nominal:", ["5/8\"", "3/4\"", "7/8\"", "1\""])
+        lectura_real = st.number_input("Lectura del Calibre (pulgadas):", value=0.875, format="%.3f")
+        
+        # Lógica de validación
+        tolerancia = {"5/8\"": 0.625, "3/4\"": 0.750, "7/8\"": 0.875, "1\"": 1.000}
+        
+        if abs(lectura_real - tolerancia[diam_nominal]) < 0.010:
+            st.success(f"✅ HERRAMIENTA CALIBRADA. Pasa por la chapa {diam_nominal}.")
+        else:
+            st.error(f"🚨 HERRAMIENTA FUERA DE CALIBRE. No debe bajar al pozo.")            
 def monitor_barreras_seguridad():
     st.subheader("🛡️ Monitor de Barreras de Seguridad")
     
