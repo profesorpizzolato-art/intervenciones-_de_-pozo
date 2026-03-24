@@ -304,7 +304,7 @@ def header_app():
 # --- PANTALLA: REGISTRO ---
 def vista_registro():
     c1, c2, c3 = st.columns([1, 1.5, 1])
-    with col2 := c2:
+   with c2 as col2:
         st.image("https://via.placeholder.com/600x200.png?text=IPCL+MENFA+MENDOZA", use_container_width=True)
         st.markdown("<h2 style='text-align: center;'>Acceso al Sistema de Operaciones</h2>", unsafe_allow_html=True)
         with st.form("login"):
