@@ -218,6 +218,19 @@ def vista_hse_seguridad():
 
 def vista_simulador_operativo():
     header_app()
+    
+    # --- LÓGICA DE EVENTO ALEATORIO ---
+    if st.session_state['evento_activo'] == "KICK":
+        evento_emergencia_bop()
+        return # Detiene el resto del simulador hasta que resuelva la emergencia
+
+    # Botón para que el instructor (vos) dispare la emergencia de prueba
+    if st.sidebar.button("Simular Surgencia (Examen)"):
+        st.session_state['evento_activo'] = "KICK"
+        st.rerun()
+    
+    # ... resto del código del simulador (tensión, gráficos, etc.)
+    header_app()
     if st.button("⬅️ Volver", key="btn_volver_sim"): 
         st.session_state['pantalla'] = 'dashboard'
         st.rerun()
